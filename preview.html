@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PM Shaping Co-Pilot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a1a; min-height: 100vh; }
+    
+    /* Navigation */
+    nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0.75rem 2rem; display: flex; align-items: center; gap: 2rem; }
+    nav h1 { font-size: 1rem; font-weight: 700; }
+    nav a { font-size: 0.875rem; text-decoration: none; color: #64748b; cursor: pointer; padding: 0.25rem 0; border-bottom: 2px solid transparent; }
+    nav a.active { color: #2563eb; border-bottom-color: #2563eb; }
+    nav a:hover { color: #1a1a1a; }
+
+    /* Layout */
+    .page { display: none; padding: 2rem; max-width: 720px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* Cards */
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #374151; }
+
+    /* Form elements */
+    textarea { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; font-size: 0.875rem; resize: none; font-family: inherit; outline: none; }
+    textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+    input[type="text"], input[type="password"], select { width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.875rem; font-family: inherit; outline: none; }
+    input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+    label { display: block; font-size: 0.8125rem; font-weight: 500; margin-bottom: 0.375rem; color: #374151; }
+    .form-group { margin-bottom: 1rem; }
+
+    /* Buttons */
+    button { border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-outline { background: #fff; color: #374151; border: 1px solid #e2e8f0; }
+    .btn-outline:hover { background: #f8f9fa; }
+    .btn-danger { background: #fff; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fef2f2; }
+
+    /* Output */
+    .output { white-space: pre-wrap; font-family: 'SF Mono', 'Consolas', monospace; font-size: 0.8125rem; line-height: 1.6; }
+
+    /* Status indicators */
+    .status { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
+    .status-connected { background: #dcfce7; color: #166534; }
+    .status-disconnected { background: #fee2e2; color: #991b1b; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-connected .status-dot { background: #16a34a; }
+    .status-disconnected .status-dot { background: #dc2626; }
+
+    /* Provider cards */
+    .provider-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
+    .provider-info { display: flex; align-items: center; gap: 0.75rem; }
+    .provider-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; color: #fff; }
+    .provider-name { font-weight: 500; font-size: 0.875rem; }
+    .provider-model { font-size: 0.75rem; color: #64748b; }
+    .provider-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1a1a; color: #fff; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.8125rem; display: none; z-index: 100; }
+    .toast.show { display: block; animation: fadeIn 0.2s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Key input with toggle */
+    .key-input-wrapper { position: relative; }
+    .key-input-wrapper input { padding-right: 2.5rem; }
+    .key-toggle { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 0.25rem; cursor: pointer; color: #64748b; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <h1>PM Shaping Co-Pilot</h1>
+    <a class="active" onclick="showPage('shaping')">Shaping</a>
+    <a onclick="showPage('settings')">Settings</a>
+  </nav>
+
+  <!-- Shaping Page -->
+  <div class="page active" id="page-shaping">
+    <div class="card">
+      <h2>Shape an Idea</h2>
+      <div class="form-group">
+        <textarea id="idea" rows="5" placeholder="Describe your rough product idea..."></textarea>
+      </div>
+      <button class="btn-primary" id="shape-btn" onclick="shapeIdea()">Shape Idea</button>
+    </div>
+    <div class="card" id="result-card" style="display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <h2 style="margin:0;">Output</h2>
+        <button class="btn-outline" onclick="copyOutput()">Copy</button>
+      </div>
+      <div class="output" id="output"></div>
+    </div>
+  </div>
+
+  <!-- Settings Page -->
+  <div class="page" id="page-settings">
+    <div class="card">
+      <h2>API Connections</h2>
+      <p style="font-size:0.8125rem; color:#64748b; margin-bottom:1.25rem;">Connect an AI provider to power the shaping tool. Keys are stored in your browser only.</p>
+
+      <div id="provider-list"></div>
+
+      <button class="btn-outline" onclick="showAddProvider()" style="width:100%; margin-top:0.5rem;">+ Add Provider</button>
+    </div>
+
+    <!-- Add/Edit Provider Form -->
+    <div class="card" id="provider-form" style="display:none;">
+      <h2 id="form-title">Add Provider</h2>
+      <div class="form-group">
+        <label for="provider-select">Provider</label>
+        <select id="provider-select" onchange="onProviderChange()">
+          <option value="gemini">Google Gemini</option>
+          <option value="openai">OpenAI</option>
+          <option value="groq">Groq</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="custom">Custom (OpenAI-compatible)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="api-key-input">API Key</label>
+        <div class="key-input-wrapper">
+          <input type="password" id="api-key-input" placeholder="Paste your API key" />
+          <button class="key-toggle" onclick="toggleKeyVisibility()">show</button>
+        </div>
+      </div>
+      <div class="form-group" id="custom-url-group" style="display:none;">
+        <label for="custom-url">API Base URL</label>
+        <input type="text" id="custom-url" placeholder="https://api.example.com/v1" />
+      </div>
+      <div class="form-group" id="custom-model-group" style="display:none;">
+        <label for="custom-model">Model Name</label>
+        <input type="text" id="custom-model" placeholder="e.g. gpt-4o-mini" />
+      </div>
+      <div style="display:flex; gap:0.5rem;">
+        <button class="btn-success" onclick="saveProvider()">Save</button>
+        <button class="btn-outline" onclick="cancelForm()">Cancel</button>
+        <button class="btn-primary" onclick="testConnection()" style="margin-left:auto;">Test Connection</button>
+      </div>
+      <p id="test-result" style="font-size:0.75rem; margin-top:0.75rem; color:#64748b;"></p>
+    </div>
+
+    <!-- Active Provider -->
+    <div class="card">
+      <h2>Active Provider</h2>
+      <div class="form-group">
+        <select id="active-provider" onchange="setActiveProvider()">
+          <option value="">— Select —</option>
+        </select>
+      </div>
+      <p style="font-size:0.75rem; color:#64748b;">This provider will be used when you click "Shape Idea".</p>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // --- State ---
+    let providers = JSON.parse(localStorage.getItem("pm_providers") || "[]");
+    let activeProviderId = localStorage.getItem("pm_active_provider") || "";
+
+    const PROVIDER_META = {
+      gemini: { name: "Google Gemini", color: "#4285f4", model: "gemini-2.0-flash", label: "G" },
+      openai: { name: "OpenAI", color: "#10a37f", model: "gpt-4o-mini", label: "O" },
+      groq: { name: "Groq", color: "#f55036", model: "llama-3.3-70b-versatile", label: "Q" },
+      anthropic: { name: "Anthropic", color: "#d97706", model: "claude-3-5-haiku-20241022", label: "A" },
+      custom: { name: "Custom", color: "#6b7280", model: "custom", label: "C" },
+    };
+
+    const SYSTEM_PROMPT = `You are a product management thinking partner. Help PMs turn rough ideas into clear, structured proposals.
+
+Given a raw idea, produce:
+
+PROBLEM STRUCTURE
+- User:
+- Problem:
+- Context:
+- Current alternatives:
+- Why existing solutions fall short:
+
+SOLUTION OPTIONS (3 distinct approaches)
+For each: Description (1-2 lines), Strength, Tradeoff
+
+RISKS & ASSUMPTIONS
+- 3 key assumptions
+- 3 risks
+- 2 edge cases
+
+SUCCESS METRICS (2-3)
+
+Be concise. Use bullets. Challenge weak thinking. Do not over-explain.`;
+
+    // --- Navigation ---
+    function showPage(page) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+      document.getElementById("page-" + page).classList.add("active");
+      event.target.classList.add("active");
+    }
+
+    // --- Toast ---
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2500);
+    }
+
+    // --- Provider List ---
+    function renderProviders() {
+      const list = document.getElementById("provider-list");
+      const select = document.getElementById("active-provider");
+
+      if (providers.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8125rem; color:#94a3b8; text-align:center; padding:1rem;">No providers configured yet.</p>';
+      } else {
+        list.innerHTML = providers.map(p => {
+          const meta = PROVIDER_META[p.type] || PROVIDER_META.custom;
+          const isActive = p.id === activeProviderId;
+          return `
+            <div class="provider-card">
+              <div class="provider-info">
+                <div class="provider-icon" style="background:${meta.color}">${meta.label}</div>
+                <div>
+                  <div class="provider-name">${meta.name}</div>
+                  <div class="provider-model">${p.model || meta.model}</div>
+                </div>
+              </div>
+              <div class="provider-actions">
+                <span class="status ${isActive ? 'status-connected' : 'status-disconnected'}">
+                  <span class="status-dot"></span>${isActive ? 'Active' : 'Inactive'}
+                </span>
+                <button class="btn-danger" onclick="removeProvider('${p.id}')">Remove</button>
+              </div>
+            </div>`;
+        }).join("");
+      }
+
+      // Update active dropdown
+      select.innerHTML = '<option value="">— Select —</option>' +
+        providers.map(p => {
+          const meta = PROVIDER_META[p.type] || PROVIDER_META.custom;
+          return `<option value="${p.id}" ${p.id === activeProviderId ? 'selected' : ''}>${meta.name}</option>`;
+        }).join("");
+    }
+
+    // --- Add Provider ---
+    function showAddProvider() {
+      document.getElementById("provider-form").style.display = "block";
+      document.getElementById("form-title").textContent = "Add Provider";
+      document.getElementById("api-key-input").value = "";
+      document.getElementById("custom-url").value = "";
+      document.getElementById("custom-model").value = "";
+      document.getElementById("test-result").textContent = "";
+      onProviderChange();
+    }
+
+    function cancelForm() {
+      document.getElementById("provider-form").style.display = "none";
+    }
+
+    function onProviderChange() {
+      const type = document.getElementById("provider-select").value;
+      document.getElementById("custom-url-group").style.display = type === "custom" ? "block" : "none";
+      document.getElementById("custom-model-group").style.display = type === "custom" ? "block" : "none";
+    }
+
+    function toggleKeyVisibility() {
+      const input = document.getElementById("api-key-input");
+      const btn = input.nextElementSibling;
+      if (input.type === "password") { input.type = "text"; btn.textContent = "hide"; }
+      else { input.type = "password"; btn.textContent = "show"; }
+    }
+
+    function saveProvider() {
+      const type = document.getElementById("provider-select").value;
+      const key = document.getElementById("api-key-input").value.trim();
+      if (!key) { toast("API key is required"); return; }
+
+      const meta = PROVIDER_META[type];
+      const provider = {
+        id: Date.now().toString(36),
+        type,
+        key,
+        model: type === "custom" ? document.getElementById("custom-model").value.trim() : meta.model,
+        baseUrl: type === "custom" ? document.getElementById("custom-url").value.trim() : null,
+      };
+
+      providers.push(provider);
+      if (!activeProviderId) activeProviderId = provider.id;
+      save();
+      cancelForm();
+      toast("Provider added");
+    }
+
+    function removeProvider(id) {
+      providers = providers.filter(p => p.id !== id);
+      if (activeProviderId === id) activeProviderId = providers[0]?.id || "";
+      save();
+      toast("Provider removed");
+    }
+
+    function setActiveProvider() {
+      activeProviderId = document.getElementById("active-provider").value;
+      save();
+      toast("Active provider updated");
+    }
+
+    function save() {
+      localStorage.setItem("pm_providers", JSON.stringify(providers));
+      localStorage.setItem("pm_active_provider", activeProviderId);
+      renderProviders();
+    }
+
+    // --- Test Connection ---
+    async function testConnection() {
+      const type = document.getElementById("provider-select").value;
+      const key = document.getElementById("api-key-input").value.trim();
+      const result = document.getElementById("test-result");
+
+      if (!key) { result.textContent = "❌ Enter an API key first."; result.style.color = "#dc2626"; return; }
+
+      result.textContent = "Testing...";
+      result.style.color = "#64748b";
+
+      try {
+        const ok = await callProvider({ type, key, model: PROVIDER_META[type]?.model, baseUrl: document.getElementById("custom-url").value.trim() }, "Say hi in 3 words.");
+        result.textContent = "✓ Connected successfully!";
+        result.style.color = "#16a34a";
+      } catch (err) {
+        result.textContent = "❌ " + err.message;
+        result.style.color = "#dc2626";
+      }
+    }
+
+    // --- API Calls ---
+    async function callProvider(provider, userMessage) {
+      if (provider.type === "gemini") {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${provider.model}:generateContent?key=${provider.key}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: userMessage }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 1500 }
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "Gemini API error");
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No output.";
+      }
+
+      // OpenAI-compatible (OpenAI, Groq, Custom)
+      let baseUrl;
+      if (provider.type === "openai") baseUrl = "https://api.openai.com/v1";
+      else if (provider.type === "groq") baseUrl = "https://api.groq.com/openai/v1";
+      else if (provider.type === "anthropic") baseUrl = "https://api.anthropic.com/v1";
+      else baseUrl = provider.baseUrl;
+
+      if (provider.type === "anthropic") {
+        const res = await fetch(baseUrl + "/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-api-key": provider.key, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+          body: JSON.stringify({ model: provider.model, max_tokens: 1500, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userMessage }] })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || "Anthropic API error");
+        return data.content?.[0]?.text || "No output.";
+      }
+
+      const res = await fetch(baseUrl + "/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + provider.key },
+        body: JSON.stringify({ model: provider.model, messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: userMessage }], temperature: 0.7, max_tokens: 1500 })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || "API error");
+      return data.choices?.[0]?.message?.content || "No output.";
+    }
+
+    // --- Shaping ---
+    async function shapeIdea() {
+      const idea = document.getElementById("idea").value.trim();
+      if (!idea) return;
+
+      const provider = providers.find(p => p.id === activeProviderId);
+      if (!provider) { toast("No active provider — go to Settings"); return; }
+
+      const btn = document.getElementById("shape-btn");
+      const output = document.getElementById("output");
+      const card = document.getElementById("result-card");
+
+      btn.disabled = true;
+      btn.textContent = "Shaping...";
+      card.style.display = "block";
+      output.textContent = "Thinking...";
+
+      try {
+        const result = await callProvider(provider, "Here is a rough product idea:\n\n" + idea);
+        output.textContent = result;
+      } catch (err) {
+        output.textContent = "Error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Shape Idea";
+      }
+    }
+
+    function copyOutput() {
+      const text = document.getElementById("output").textContent;
+      navigator.clipboard.writeText(text);
+      toast("Copied to clipboard");
+    }
+
+    // --- Init ---
+    renderProviders();
+  </script>
+</body>
+</html>

@@ -1,0 +1,2604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delta Product Shaping Tool</title>
+  <style>
+    :root {
+      --delta-blue: #003a70;
+      --delta-blue-dark: #002855;
+      --delta-blue-light: #e8f0f8;
+      --delta-red: #c8102e;
+      --delta-red-hover: #a30d25;
+      --delta-gray-50: #f7f8fa;
+      --delta-gray-100: #eef1f5;
+      --delta-gray-200: #dce1e8;
+      --delta-gray-500: #6b7a8d;
+      --delta-white: #ffffff;
+      --green: #16a34a;
+      --yellow: #ca8a04;
+      --red: #dc2626;
+      --radius: 10px;
+      --shadow: 0 2px 8px rgba(0,58,112,0.07);
+      --shadow-lg: 0 4px 20px rgba(0,58,112,0.10);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--delta-gray-50); color: #1a2a3a; min-height: 100vh; }
+
+    header { background: var(--delta-blue); position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-lg); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.5rem; max-width: 920px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 0.65rem; }
+    .logo svg { width: 28px; height: 28px; }
+    .logo span { color: var(--delta-white); font-size: 1rem; font-weight: 700; }
+    .header-badge { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.9); font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
+
+    /* Progress */
+    .progress-bar { display: flex; align-items: center; gap: 0; margin-bottom: 1.5rem; }
+    .progress-step { flex: 1; text-align: center; position: relative; }
+    .progress-step .dot { width: 28px; height: 28px; border-radius: 50%; background: var(--delta-gray-200); display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: var(--delta-gray-500); margin-bottom: 0.25rem; transition: all 0.3s; }
+    .progress-step.active .dot { background: var(--delta-red); color: white; }
+    .progress-step.done .dot { background: var(--green); color: white; }
+    .progress-step .step-label { font-size: 0.6rem; color: var(--delta-gray-500); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+    .progress-step.active .step-label { color: var(--delta-blue); }
+    .progress-line { flex: 0 0 40px; height: 2px; background: var(--delta-gray-200); }
+    .progress-line.done { background: var(--green); }
+
+    /* Cards */
+    .card { background: var(--delta-white); border: 1px solid var(--delta-gray-200); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 1.25rem; }
+    .card-header { background: var(--delta-blue); padding: 0.65rem 1.1rem; }
+    .card-header h2 { color: var(--delta-white); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card-header-ai { background: linear-gradient(135deg, var(--delta-blue-dark), #1a4f8a); }
+    .card-header-green { background: var(--green); }
+    .card-body { padding: 1.25rem; }
+
+    /* Form */
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--delta-blue); margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    input[type="text"], textarea {
+      width: 100%; border: 1.5px solid var(--delta-gray-200); border-radius: 6px;
+      padding: 0.6rem 0.75rem; font-size: 0.85rem; font-family: inherit; outline: none; transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: var(--delta-blue); box-shadow: 0 0 0 3px rgba(0,58,112,0.06); }
+    textarea { resize: none; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group:last-child { margin-bottom: 0; }
+    .hint { font-size: 0.7rem; color: var(--delta-gray-500); margin-top: 0.25rem; }
+
+    /* Stage selector */
+    .stage-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-top: 0.5rem; }
+    .stage-btn { padding: 0.7rem 0.5rem; border: 2px solid var(--delta-gray-200); border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--delta-white); }
+    .stage-btn:hover { border-color: var(--delta-blue); background: var(--delta-blue-light); }
+    .stage-btn.selected { border-color: var(--delta-red); background: #fff0f2; }
+    .stage-btn .stage-icon { font-size: 1.2rem; margin-bottom: 0.25rem; }
+    .stage-btn .stage-name { font-size: 0.7rem; font-weight: 700; color: var(--delta-blue); text-transform: uppercase; }
+    .stage-btn .stage-desc { font-size: 0.6rem; color: var(--delta-gray-500); margin-top: 0.15rem; }
+
+    /* Buttons */
+    .btn { border: none; padding: 0.65rem 1.5rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-red { background: var(--delta-red); color: var(--delta-white); }
+    .btn-red:hover { background: var(--delta-red-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(200,16,46,0.3); }
+    .btn-red:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-blue { background: var(--delta-blue); color: var(--delta-white); }
+    .btn-blue:hover { background: var(--delta-blue-dark); }
+    .btn-outline { background: var(--delta-white); color: var(--delta-blue); border: 1.5px solid var(--delta-gray-200); }
+    .btn-outline:hover { border-color: var(--delta-blue); background: var(--delta-blue-light); }
+    .btn-row { display: flex; gap: 0.75rem; margin-top: 1.25rem; align-items: center; }
+
+    /* Questions */
+    .question-item { background: var(--delta-gray-50); border: 1px solid var(--delta-gray-200); border-radius: 8px; padding: 1rem; margin-bottom: 0.85rem; }
+    .question-item:last-child { margin-bottom: 0; }
+    .question-text { font-size: 0.85rem; font-weight: 600; color: var(--delta-blue); margin-bottom: 0.5rem; }
+    .question-why { font-size: 0.7rem; color: var(--delta-gray-500); margin-bottom: 0.5rem; font-style: italic; }
+
+    /* Output sections */
+    .output-section { margin-bottom: 1rem; padding: 1rem 1.25rem; border-left: 4px solid var(--delta-red); background: var(--delta-white); border-radius: 0 6px 6px 0; box-shadow: 0 1px 4px rgba(0,58,112,0.05); }
+    .output-section:last-child { margin-bottom: 0; }
+    .output-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--delta-red); margin-bottom: 0.3rem; }
+    .output-value { font-size: 0.84rem; line-height: 1.55; color: #333; }
+    .output-value { font-size: 0.875rem; line-height: 1.6; color: #2a3a4a; }
+
+    /* Method card */
+    .method-card { border: 2px solid var(--delta-blue); border-radius: var(--radius); overflow: hidden; }
+    .method-header { background: var(--delta-blue); padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; }
+    .method-header h3 { color: var(--delta-white); font-size: 0.9rem; font-weight: 700; }
+    .method-badge { background: var(--delta-red); color: white; font-size: 0.6rem; padding: 0.2rem 0.5rem; border-radius: 3px; font-weight: 700; text-transform: uppercase; }
+    .method-body { padding: 1.25rem; }
+    .method-row { margin-bottom: 1rem; }
+    .method-row:last-child { margin-bottom: 0; }
+    .method-row-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--delta-blue); margin-bottom: 0.25rem; }
+    .method-row-value { font-size: 0.825rem; line-height: 1.5; color: #2a3a4a; }
+    .method-link { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.75rem; padding: 0.5rem 0.85rem; background: var(--delta-blue-light); border: 1px solid rgba(0,58,112,0.15); border-radius: 6px; color: var(--delta-blue); font-size: 0.75rem; font-weight: 600; text-decoration: none; }
+
+    /* Loading */
+    .loading { text-align: center; padding: 2.5rem; color: var(--delta-gray-500); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--delta-gray-200); border-top-color: var(--delta-red); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 0.75rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+
+    /* Sliders for scoring */
+    .slider-group { margin-bottom: 1rem; }
+    .slider-group:last-child { margin-bottom: 0; }
+    .slider-row { display: flex; align-items: center; gap: 0.75rem; }
+    .slider-label { width: 80px; font-size: 0.8rem; font-weight: 600; color: #2a3a4a; }
+    .slider-value { width: 28px; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--delta-blue); }
+    .slider-scale { display: flex; justify-content: space-between; padding: 0 calc(28px + 0.75rem) 0 calc(80px + 0.75rem); margin-top: 0.15rem; }
+    .slider-scale span { font-size: 0.55rem; color: var(--delta-gray-500); font-weight: 500; }
+    input[type="range"] { flex: 1; height: 6px; -webkit-appearance: none; appearance: none; background: var(--delta-gray-200); border-radius: 3px; outline: none; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--delta-red); border: 2px solid var(--delta-white); box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer; }
+    input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--delta-red); border: 2px solid var(--delta-white); box-shadow: 0 1px 4px rgba(0,0,0,0.2); cursor: pointer; }
+
+    /* Score display */
+    .score-display { display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 1rem; margin-top: 1rem; border-radius: 8px; background: var(--delta-gray-50); border: 1px solid var(--delta-gray-200); }
+    .score-number { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .score-verdict { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 4px; }
+    .verdict-high { background: #dcfce7; color: var(--green); }
+    .verdict-medium { background: #fef3c7; color: var(--yellow); }
+    .verdict-notready { background: #ffedd5; color: #c2410c; }
+    .verdict-low { background: #fee2e2; color: var(--red); }
+    .score-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--delta-gray-500); margin-top: 0.35rem; font-weight: 500; }
+    .score-green { color: var(--green); }
+    .score-yellow { color: var(--yellow); }
+    .score-red { color: var(--red); }
+
+    /* Guardrail flags */
+    .guardrail-flags { margin-top: 0.75rem; }
+    .flag { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 600; padding: 0.35rem 0.65rem; border-radius: 4px; margin-bottom: 0.35rem; }
+    .flag-red { background: #fee2e2; color: var(--red); }
+    .flag-yellow { background: #fef3c7; color: var(--yellow); }
+
+    /* Assessment items */
+    .assess-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.65rem; border-radius: 6px; margin-bottom: 0.4rem; font-size: 0.8rem; line-height: 1.4; }
+    .assess-item:last-child { margin-bottom: 0; }
+    .assess-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+    .assess-high { background: #dcfce7; }
+    .assess-high .assess-icon { background: var(--green); color: white; }
+    .assess-low { background: #fef3c7; }
+    .assess-low .assess-icon { background: var(--yellow); color: white; }
+    .assess-warn { background: #fee2e2; }
+    .assess-warn .assess-icon { background: var(--red); color: white; }
+
+    .footer { text-align: center; padding: 2rem; font-size: 0.65rem; color: var(--delta-gray-500); }
+
+    /* Strength panel rows */
+    .strength-row { font-size: 0.8rem; padding: 0.35rem 0; display: flex; align-items: center; gap: 0.4rem; }
+    .strength-row span { color: var(--delta-gray-500); }
+
+    @media (max-width: 700px) {
+      #step-1 > div:first-child { grid-template-columns: 1fr !important; }
+    }
+
+    @media (max-width: 600px) {
+      .stage-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Delta Air Lines Widget (stylized) -->
+        <path d="M16 2 L30 28 L2 28 Z" fill="#C8102E"/>
+        <path d="M16 8 L12 28 L2 28 Z" fill="#9B0A24"/>
+        <path d="M16 8 L20 28 L30 28 Z" fill="#E8354A"/>
+        <path d="M16 2 L16 8 L12 28 L2 28 Z" fill="#AB0D28" opacity="0.9"/>
+        <path d="M16 2 L16 8 L20 28 L30 28 Z" fill="#C8102E"/>
+        <path d="M14 14 L16 8 L18 14 L16 28 Z" fill="#003a70" opacity="0.35"/>
+      </svg>
+      <span>Product Shaping Tool</span>
+    </div>
+    <div style="display:flex; gap:0.75rem; align-items:center;">
+      <button onclick="showView('shaping')" id="nav-shaping" style="background:rgba(255,255,255,0.15); border:none; color:white; padding:0.3rem 0.7rem; border-radius:4px; font-size:0.7rem; font-weight:600; cursor:pointer;">Shaping</button>
+      <button onclick="showView('dashboard')" id="nav-dashboard" style="background:none; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.8); padding:0.3rem 0.7rem; border-radius:4px; font-size:0.7rem; font-weight:600; cursor:pointer;">📊 Dashboard</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- Progress Bar -->
+  <div class="progress-bar" id="progress">
+    <div class="progress-step active" id="prog-1"><div class="dot">1</div><div class="step-label">Intake</div></div>
+    <div class="progress-line" id="line-1"></div>
+    <div class="progress-step" id="prog-2"><div class="dot">2</div><div class="step-label">Clarify</div></div>
+    <div class="progress-line" id="line-2"></div>
+    <div class="progress-step" id="prog-3"><div class="dot">3</div><div class="step-label">Shape</div></div>
+    <div class="progress-line" id="line-3"></div>
+    <div class="progress-step" id="prog-4"><div class="dot">4</div><div class="step-label">Method</div></div>
+  </div>
+
+  <!-- STEP 1: Progressive Intake -->
+  <div id="step-1">
+    <div style="display:grid; grid-template-columns:1fr 250px; gap:1.25rem;">
+      <!-- Left: Step Content -->
+      <div>
+        <!-- Progress Bar -->
+        <div style="margin-bottom:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+            <span style="font-size:0.7rem; font-weight:600; color:var(--delta-blue); text-transform:uppercase;">Intake Progress</span>
+            <span style="font-size:0.7rem; font-weight:700; color:var(--delta-gray-500);" id="progress-pct">0%</span>
+          </div>
+          <div style="height:6px; background:var(--delta-gray-200); border-radius:3px; overflow:hidden;">
+            <div id="progress-fill" style="height:100%; width:0%; background:var(--delta-red); border-radius:3px; transition:width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Sub-step 1A: Title -->
+        <div class="card" id="substep-1">
+          <div class="card-header"><h2>💡 Step 1 — Idea Title</h2></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="idea-title">What's the idea?</label>
+              <input type="text" id="idea-title" placeholder="e.g. Automated crew scheduling alerts" oninput="updateIntakeScore()" />
+              <span class="hint">Keep it short — one line that captures the core concept.</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-red" onclick="goSubstep(2)">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-step 1B: Context -->
+        <div class="card hidden" id="substep-2">
+          <div class="card-header"><h2>📋 Step 2 — Context</h2></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="idea-context">Describe the situation</label>
+              <textarea id="idea-context" rows="4" placeholder="What's happening? What triggered this? Any data, complaints, or observations..." oninput="updateIntakeScore(); updateContextSuggestion()"></textarea>
+              <div id="context-suggestion" style="font-size:0.75rem; color:var(--delta-blue); margin-top:0.4rem; font-style:italic; min-height:1.2em;"></div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-red" onclick="goSubstep(3)">Next →</button>
+              <button class="btn btn-outline" onclick="goSubstep(1)">← Back</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-step 1C: Audience -->
+        <div class="card hidden" id="substep-3">
+          <div class="card-header"><h2>👤 Step 3 — Who's Impacted?</h2></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="idea-user">Target audience</label>
+              <input type="text" id="idea-user" placeholder="Be specific: role, team, segment" oninput="updateIntakeScore()" />
+              <span class="hint">Vague targets like "all users" will weaken your score.</span>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-red" onclick="goSubstep(4)">Next →</button>
+              <button class="btn btn-outline" onclick="goSubstep(2)">← Back</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-step 1D: Stage -->
+        <div class="card hidden" id="substep-4">
+          <div class="card-header"><h2>🎯 Step 4 — Stage</h2></div>
+          <div class="card-body">
+            <label>Where are you in the process?</label>
+            <div class="stage-grid" style="margin-top:0.5rem;">
+              <div class="stage-btn" onclick="selectStage('discover', this)">
+                <div class="stage-icon">🔍</div>
+                <div class="stage-name">Discover</div>
+                <div class="stage-desc">Finding problems</div>
+              </div>
+              <div class="stage-btn" onclick="selectStage('define', this)">
+                <div class="stage-icon">🎯</div>
+                <div class="stage-name">Define</div>
+                <div class="stage-desc">Framing the problem</div>
+              </div>
+              <div class="stage-btn" onclick="selectStage('design', this)">
+                <div class="stage-icon">✏️</div>
+                <div class="stage-name">Design</div>
+                <div class="stage-desc">Exploring solutions</div>
+              </div>
+              <div class="stage-btn" onclick="selectStage('experiment', this)">
+                <div class="stage-icon">🧪</div>
+                <div class="stage-name">Experiment</div>
+                <div class="stage-desc">Testing & validating</div>
+              </div>
+            </div>
+            <div id="stage-helper" style="font-size:0.8rem; color:var(--delta-gray-500); margin-top:0.75rem; min-height:1.2em;"></div>
+            <div class="btn-row">
+              <button class="btn btn-red" id="cta-button" onclick="startShaping()">🚀 Start Shaping</button>
+              <button class="btn btn-outline" onclick="goSubstep(3)">← Back</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Idea Strength Panel -->
+      <div>
+        <div class="card" style="position:sticky; top:80px;">
+          <div class="card-header" style="background:var(--delta-blue-dark);"><h2>💪 Idea Strength</h2></div>
+          <div class="card-body" style="text-align:center;">
+            <div id="idea-score" style="font-size:2.5rem; font-weight:800; color:var(--delta-red); line-height:1;">0</div>
+            <div style="font-size:0.65rem; color:var(--delta-gray-500); text-transform:uppercase; margin-top:0.25rem; font-weight:600;">/ 100</div>
+            <div style="margin-top:1rem; text-align:left;">
+              <div class="strength-row" id="str-title">❌ <span>Clarity</span></div>
+              <div class="strength-row" id="str-context">❌ <span>Context</span></div>
+              <div class="strength-row" id="str-audience">❌ <span>Audience</span></div>
+              <div class="strength-row" id="str-stage">❌ <span>Stage</span></div>
+            </div>
+            <div id="strength-advice" style="margin-top:1rem; font-size:0.75rem; color:var(--delta-gray-500); text-align:left; padding-top:0.75rem; border-top:1px solid var(--delta-gray-200);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What's Next -->
+    <div style="background:var(--delta-blue-light); border:1px solid rgba(0,58,112,0.1); border-radius:8px; padding:1rem; margin-top:1.25rem;">
+      <div style="font-size:0.75rem; font-weight:700; color:var(--delta-blue); margin-bottom:0.25rem;">What happens next?</div>
+      <div style="font-size:0.8rem; color:var(--delta-gray-500);">Your idea will be shaped into a structured concept through guided questions, scoring, and a recommended method — ready for intake and prioritization.</div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Conversational Coach -->
+  <div id="step-2" class="hidden">
+    <!-- Coach Reflection -->
+    <div class="card">
+      <div class="card-header card-header-ai"><h2>🪞 Here's what I'm seeing so far</h2></div>
+      <div class="card-body" id="reflection-body"></div>
+    </div>
+
+    <!-- Data Insights (conditional — only if meaningful context) -->
+    <div class="card" id="data-insights-card" style="display:none;">
+      <div class="card-header" style="background:var(--green);"><h2>📊 Here's what stands out</h2></div>
+      <div class="card-body" id="data-insights-body"></div>
+    </div>
+
+    <!-- Progressive Questions Container -->
+    <div class="card">
+      <div class="card-header" style="background:var(--delta-blue-dark);"><h2>💬 Let's tighten this up</h2></div>
+      <div class="card-body" id="coach-questions"></div>
+    </div>
+
+    <!-- Follow-up (appears after first answers) -->
+    <div class="card" id="followup-card" style="display:none;">
+      <div class="card-header"><h2>🔎 Quick follow-up</h2></div>
+      <div class="card-body" id="followup-container"></div>
+    </div>
+
+    <!-- Decision Frame -->
+    <div style="background:var(--delta-blue-light); border:1px solid rgba(0,58,112,0.12); border-radius:8px; padding:1rem; margin-top:0.5rem; font-size:0.8rem; color:var(--delta-blue);">
+      <strong>Once you answer these, I'll determine:</strong>
+      <span style="display:block; margin-top:0.3rem; color:var(--delta-gray-500);">→ If you're ready to move forward, or what you need to do next.</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-red" onclick="processAnswers()">Continue →</button>
+      <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Shaping Output -->
+  <div id="step-3" class="hidden">
+    <div class="card">
+      <div class="card-header card-header-green"><h2>✅ Step 3 — Structured Shaping Output</h2></div>
+      <div class="card-body" id="shaping-output"></div>
+      <div style="padding:0 1.25rem 1.25rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="copyOutputToClipboard()" style="font-size:0.75rem; padding:0.4rem 0.75rem;">📋 Copy</button>
+        <button class="btn btn-outline" onclick="challengeIdea()" style="font-size:0.75rem; padding:0.4rem 0.75rem;">⚡ Challenge My Idea</button>
+        <button class="btn btn-outline" onclick="askCopilot('rewrite')" style="font-size:0.75rem; padding:0.4rem 0.75rem;">✨ AI Rewrite</button>
+        <button class="btn btn-outline" onclick="askCopilot('missing')" style="font-size:0.75rem; padding:0.4rem 0.75rem;">🔍 What's Missing?</button>
+      </div>
+    </div>
+
+    <!-- AI COPILOT PANEL -->
+    <div class="card" id="copilot-card" style="display:none;">
+      <div class="card-header card-header-ai"><h2>🤖 AI Copilot</h2></div>
+      <div class="card-body" id="copilot-body">
+        <div id="copilot-loading" style="text-align:center; padding:1.5rem; display:none;">
+          <div class="spinner"></div>
+          <div style="font-size:0.8rem; color:var(--delta-gray-500); margin-top:0.5rem;">Thinking...</div>
+        </div>
+        <div id="copilot-content" style="font-size:0.825rem; line-height:1.7; white-space:pre-wrap;"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 1: PROBLEM STRENGTH -->
+    <div class="card">
+      <div class="card-header" style="background:var(--delta-blue-dark);"><h2>📊 Layer 1 — Problem Strength</h2></div>
+      <div class="card-body">
+        <p style="font-size:0.8rem; color:var(--delta-gray-500); margin-bottom:1rem;">Rate honestly. The system blocks weak ideas.</p>
+        <div class="slider-group">
+          <div class="slider-row">
+            <span class="slider-label">Impact</span>
+            <input type="range" id="score-impact" min="1" max="5" value="3" oninput="updateScore()" />
+            <span class="slider-value" id="score-impact-val">3</span>
+          </div>
+          <div class="slider-scale"><span>Negligible</span><span>Minor</span><span>Moderate</span><span>Significant</span><span>Critical</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-row">
+            <span class="slider-label">Effort</span>
+            <input type="range" id="score-effort" min="1" max="5" value="3" oninput="updateScore()" />
+            <span class="slider-value" id="score-effort-val">3</span>
+          </div>
+          <div class="slider-scale"><span>Trivial</span><span>Light</span><span>Moderate</span><span>Heavy</span><span>Massive</span></div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-row">
+            <span class="slider-label">Confidence</span>
+            <input type="range" id="score-confidence" min="1" max="5" value="3" oninput="updateScore()" />
+            <span class="slider-value" id="score-confidence-val">3</span>
+          </div>
+          <div class="slider-scale"><span>Guessing</span><span>Hunch</span><span>Some data</span><span>Strong signal</span><span>Proven</span></div>
+        </div>
+
+        <div class="score-display">
+          <div class="score-number" id="base-score">—</div>
+          <div class="score-verdict verdict-low" id="base-verdict">AWAITING INPUT</div>
+          <div class="score-label">Base Score: (Impact² × Confidence²) ÷ Effort² × Clarity</div>
+        </div>
+        <div class="guardrail-flags" id="guardrails"></div>
+        <div id="score-diagnostic" style="margin-top:1rem;"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 2: BUSINESS PRIORITY CONTEXT (AUTO-INFERRED) -->
+    <div class="card" id="layer2-card">
+      <div class="card-header" style="background:#1a4f8a;"><h2>🏢 Layer 2 — Business Priority Context (Auto)</h2></div>
+      <div class="card-body">
+        <p style="font-size:0.8rem; color:var(--delta-gray-500); margin-bottom:1rem;">Based on your problem, here's how this maps to current priorities.</p>
+        <div id="org-inferred-display" style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;"></div>
+        <div style="margin-top:1rem; display:flex; gap:0.5rem; align-items:center;">
+          <button class="btn btn-outline" id="org-confirm-btn" onclick="confirmOrg()" style="font-size:0.75rem; padding:0.4rem 0.85rem;">👍 Looks right</button>
+          <button class="btn btn-outline" id="org-adjust-btn" onclick="showOrgOverride()" style="font-size:0.75rem; padding:0.4rem 0.85rem;">Adjust</button>
+          <span style="font-size:0.7rem; color:var(--delta-gray-500);" id="org-status-label"></span>
+        </div>
+        <!-- Hidden manual override -->
+        <div id="org-override-panel" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--delta-gray-200);">
+          <p style="font-size:0.75rem; color:var(--delta-gray-500); margin-bottom:0.75rem;">Override any value below. Changes update the final score.</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem;">
+            <div class="form-group">
+              <label>Work Type</label>
+              <select id="org-worktype" onchange="updateScore()"></select>
+            </div>
+            <div class="form-group">
+              <label>Readiness</label>
+              <select id="org-readiness" onchange="updateScore()"></select>
+            </div>
+            <div class="form-group">
+              <label>Progress</label>
+              <select id="org-progress" onchange="updateScore()"></select>
+            </div>
+            <div class="form-group">
+              <label>Timeline</label>
+              <select id="org-timeline" onchange="updateScore()"></select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label>Leadership Group</label>
+              <select id="org-leadership" onchange="updateScore()"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINAL SCORE + DECISION -->
+    <div class="card">
+      <div class="card-header" style="background:var(--delta-blue);"><h2>⚖️ Final Priority Decision</h2></div>
+      <div class="card-body">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; text-align:center; margin-bottom:1rem;">
+          <div style="background:var(--delta-gray-50); border-radius:6px; padding:0.75rem;">
+            <div style="font-size:1.4rem; font-weight:800;" id="final-base">—</div>
+            <div style="font-size:0.6rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Problem Score</div>
+          </div>
+          <div style="background:var(--delta-gray-50); border-radius:6px; padding:0.75rem;">
+            <div style="font-size:1.4rem; font-weight:800;" id="final-org">—</div>
+            <div style="font-size:0.6rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Org Modifier</div>
+          </div>
+          <div style="background:var(--delta-gray-50); border-radius:6px; padding:0.75rem;">
+            <div style="font-size:1.8rem; font-weight:800;" id="final-score">—</div>
+            <div style="font-size:0.6rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Final Score</div>
+          </div>
+        </div>
+
+        <!-- Priority Classification -->
+        <div id="priority-classification" style="margin-bottom:1rem;"></div>
+
+        <!-- Problem Signal Quality -->
+        <div id="problem-quality-display" style="margin-bottom:1rem;"></div>
+
+        <!-- Routing Decision -->
+        <div id="routing-decision" style="margin-bottom:1rem;"></div>
+
+        <!-- Assessment -->
+        <div id="score-assessment" style="margin-top:0.75rem;"></div>
+
+        <!-- Improvement Path -->
+        <div id="score-improvement" style="margin-top:0.75rem;"></div>
+      </div>
+    </div>
+
+    <!-- STAKEHOLDER ALLOCATION -->
+    <div class="card">
+      <div class="card-header" style="background:var(--green);"><h2>👥 Stakeholder Allocation</h2></div>
+      <div class="card-body" id="stakeholder-output">
+        <p style="font-size:0.8rem; color:var(--delta-gray-500);">Complete scoring above to see stakeholder routing.</p>
+      </div>
+    </div>
+
+    <!-- SYSTEM IMPACT PANEL -->
+    <div class="card">
+      <div class="card-header" style="background:#4a2c7a;"><h2>⚡ System Impact (if prioritized)</h2></div>
+      <div class="card-body" id="system-impact-output">
+        <p style="font-size:0.8rem; color:var(--delta-gray-500);">Impact analysis will appear after scoring.</p>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-bottom:1.25rem;">
+      <button class="btn btn-red" onclick="showMethod()">Get Recommended Method →</button>
+      <button class="btn btn-outline" onclick="goToStep(2)">← Back to Questions</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Recommended Method -->
+  <div id="step-4" class="hidden">
+    <div class="card">
+      <div class="card-header"><h2>📘 Step 4 — Recommended Method</h2></div>
+      <div class="card-body" id="method-output"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-blue" onclick="restart()">🔄 Start New Shaping Session</button>
+      <button class="btn btn-outline" onclick="goToStep(3)">← Back to Output</button>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="hidden">
+    <div class="card">
+      <div class="card-body">
+        <div class="loading">
+          <div class="spinner"></div>
+          <div id="loading-text">Analyzing your inputs...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="footer">Delta Air Lines — Internal Product Management Tools · Not for external distribution</div>
+
+<!-- FLOATING AI CHAT BOX -->
+<div id="ai-chat-toggle" onclick="toggleAIChat()" style="position:fixed; bottom:1.5rem; right:1.5rem; width:52px; height:52px; background:var(--delta-red); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 16px rgba(200,16,46,0.35); z-index:200; transition:transform 0.2s;">
+  <span style="font-size:1.4rem;">🤖</span>
+</div>
+
+<div id="ai-chat-box" style="display:none; position:fixed; bottom:5rem; right:1.5rem; width:380px; max-height:520px; background:white; border-radius:12px; box-shadow:0 8px 32px rgba(0,58,112,0.18); z-index:200; overflow:hidden; border:1px solid var(--delta-gray-200); display:flex; flex-direction:column;">
+  <div style="background:var(--delta-blue); padding:0.75rem 1rem; display:flex; align-items:center; justify-content:space-between;">
+    <span style="color:white; font-size:0.85rem; font-weight:700;">🤖 Shaping Coach AI</span>
+    <button onclick="toggleAIChat()" style="background:none; border:none; color:rgba(255,255,255,0.7); cursor:pointer; font-size:1rem;">✕</button>
+  </div>
+  <div id="ai-chat-messages" style="flex:1; overflow-y:auto; padding:1rem; max-height:350px; font-size:0.825rem; line-height:1.6;">
+    <div style="background:var(--delta-blue-light); border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; color:var(--delta-blue);">
+      Hey! I'm your shaping coach. Ask me anything — challenge an idea, rewrite a problem, or get advice on what to do next.
+    </div>
+  </div>
+  <div style="padding:0.75rem; border-top:1px solid var(--delta-gray-200); display:flex; gap:0.5rem;">
+    <input type="text" id="ai-chat-input" placeholder="Ask the shaping coach..." onkeydown="if(event.key==='Enter')sendAIChat()" style="flex:1; border:1.5px solid var(--delta-gray-200); border-radius:6px; padding:0.5rem 0.75rem; font-size:0.825rem; outline:none;" />
+    <button onclick="sendAIChat()" style="background:var(--delta-red); color:white; border:none; border-radius:6px; padding:0.5rem 0.85rem; font-size:0.8rem; font-weight:600; cursor:pointer;">Send</button>
+  </div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div id="dashboard-view" style="display:none; max-width:920px; margin:0 auto; padding:1.5rem;">
+  <div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:1.1rem; font-weight:700; color:var(--delta-blue);">📊 Shaping & Prioritization Dashboard</h2>
+    <p style="font-size:0.8rem; color:var(--delta-gray-500); margin-top:0.25rem;">Portfolio view of all shaped ideas. Data stored in your browser.</p>
+  </div>
+
+  <!-- Exec Summary -->
+  <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:0.85rem; margin-bottom:1.25rem;" id="dash-summary"></div>
+
+  <!-- Pipeline + Priority -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+    <div class="card">
+      <div class="card-header"><h2>📍 Pipeline Flow</h2></div>
+      <div class="card-body" id="dash-pipeline"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>⚖️ Priority Distribution</h2></div>
+      <div class="card-body" id="dash-priority"></div>
+    </div>
+  </div>
+
+  <!-- Quality + Insights -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+    <div class="card">
+      <div class="card-header"><h2>📊 Problem Signal Quality</h2></div>
+      <div class="card-body" id="dash-quality"></div>
+    </div>
+    <div class="card">
+      <div class="card-header card-header-ai"><h2>🧠 Insights</h2></div>
+      <div class="card-body" id="dash-insights"></div>
+    </div>
+  </div>
+
+  <!-- Top Ideas + Weak -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+    <div class="card">
+      <div class="card-header" style="background:var(--green);"><h2>🔥 Top Opportunities</h2></div>
+      <div class="card-body" id="dash-top"></div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="background:var(--red);"><h2>⚠️ Needs Improvement</h2></div>
+      <div class="card-body" id="dash-weak"></div>
+    </div>
+  </div>
+
+  <!-- All Ideas Table -->
+  <div class="card">
+    <div class="card-header"><h2>📋 All Shaped Ideas</h2></div>
+    <div class="card-body" id="dash-table"></div>
+  </div>
+
+  <div class="btn-row" style="margin-top:1rem;">
+    <button class="btn btn-outline" onclick="clearAllIdeas()">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+let state = {
+  title: "",
+  context: "",
+  user: "",
+  stage: "",
+  questions: [],
+  answers: []
+};
+
+// ========== RESOURCE LIBRARY (DELTA SHAPING TOOLKIT) ==========
+const METHODS = {
+  discover: [
+    {
+      name: "Interviewing",
+      why: "You need to gather direct evidence from users about their experience and pain points.",
+      when: "You have a hunch about a problem but lack first-person evidence from the people who experience it.",
+      story: "Innovation teammates joined Flight Attendants on a transatlantic flight and interviewed them during service to learn more about waste and sustainability. The outcome was thirteen concepts, of which two were selected for immediate development.",
+      link: "https://app.mural.co/template/f205efdd-0511-400b-a6a0-7ea1b3921fce/24445f46-e720-4ea9-82f1-3ebd9136506e?source=template-library",
+      linkLabel: "Interview Template (Mural)"
+    },
+    {
+      name: "Contextual Inquiry",
+      why: "You need to observe people in their actual environment to understand real behavior, not just reported behavior.",
+      when: "The problem occurs in a specific physical or operational context and you haven't been there to observe it.",
+      story: "A researcher sat in the Need Help Center for 2 days listening to customer requests and gathering insights from the agents. The information fed an ideation session and led to self-service solutions.",
+      link: "https://app.mural.co/template/0f2a1b1e-a0d6-46d4-aa55-f8107a9fdee7/dfd94bc5-e759-45c6-9304-fc78ce549bab?source=template-library",
+      linkLabel: "Contextual Inquiry Template (Mural)"
+    },
+    {
+      name: "Empathy Map",
+      why: "You need to build shared understanding of what users see, do, think, and feel.",
+      when: "Cross-functional teammates are not as familiar with the end user and need to develop shared empathy before designing.",
+      story: "A cross-functional team designed a new SNAPP dashboard for Gate Agents. They used an empathy map to deeply understand the user's needs. A key discovery was agents are hyper-concerned with on-time departures, so designers added a countdown clock that turns red near departure time.",
+      link: "https://app.mural.co/template/02299a19-f773-4eef-bb2c-9f4f1a5d8895/06cfc00c-75a9-4acd-92d5-ced90108a96f",
+      linkLabel: "Empathy Map Template (Mural)"
+    },
+    {
+      name: "Fly on the Wall Observation",
+      why: "You need unbiased observation of real behavior without influencing the people you're studying.",
+      when: "You want to understand natural workflows and pain points before intervening or asking questions.",
+      story: "A group of IT engineers went on a Service Safari at the airport to learn how Red Coats use Nomad devices. The engineers uncovered rich insights, leading to new Nomad capabilities to meet agent needs.",
+      link: "https://app.mural.co/template/04a9dd84-afad-4359-a75a-7547dc26c8b1/c639f04e-0fc5-422d-84dd-4140e698e5de?source=template-library",
+      linkLabel: "Fly on the Wall Template (Mural)"
+    },
+    {
+      name: "Existing Internal Research",
+      why: "You need to learn what is already known before starting new research.",
+      when: "A focused problem or targeted user exists and you want to see what data, research, or knowledge already exists internally.",
+      story: "OCC possessed their own knowledge from their own users. Never underestimate the power of a coffee talk with a colleague who is an expert on the topic.",
+      link: "https://deltainsightshub.stravito.com/app/assistant",
+      linkLabel: "Delta Insights Hub"
+    }
+  ],
+  define: [
+    {
+      name: "Problem Statement",
+      why: "You need clear, specific alignment on the core problem before exploring solutions.",
+      when: "Stakeholders have different interpretations of the problem, or the problem is vague enough that solutions keep shifting.",
+      story: "The ACS and IFS teams struggled with competing priorities until they co-created a single problem statement focused on departure time procedures. That statement became the decision filter for every feature discussion that followed. Formula: '[User] is experiencing [problem] when [context/situation]. It results in [negative impact].'",
+      link: "https://deltaairlines.sharepoint.com/:p:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQBZxEf6LyrkT4czLbHopBtRAb7wdDixbaF0SzEVj7vw3jM?e=O51WGa",
+      linkLabel: "Problem Statement Template (Delta)"
+    },
+    {
+      name: "Affinity Clustering",
+      why: "You need to turn raw data and ideas into meaningful themes and patterns.",
+      when: "You have lots of data points, observations, or sticky notes and need to identify what matters most.",
+      story: "After conducting 15 customer interviews, a product team clustered hundreds of notes. Patterns emerged around boarding confusion, which redirected the roadmap toward user experience improvements.",
+      link: "https://app.mural.co/template/aa749cf4-8897-4f3d-b7aa-649021268e40/5e0abcd9-1b52-40f9-99ff-facabda82a00?source=template-library",
+      linkLabel: "Affinity Clustering Template (Mural)"
+    },
+    {
+      name: "OKR Builder",
+      why: "You need to define clear outcomes and measurable success criteria aligned to the problem.",
+      when: "The problem is defined but you need to translate it into what 'solved' looks like measurably.",
+      story: "A team defined their goal as 'make customer experience better,' which led to unclear priorities. Using OKR prompts, they reframed into measurable outcomes: reduce response time from 12 to 5 minutes, increase NPS from 60 to 70.",
+      link: "https://deltaairlines.sharepoint.com/:p:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQCCgNH0v3vPR6dkR4zmNOMzATFYj8Hzo7T_sE1MqC1VWyA?e=idbJkS",
+      linkLabel: "OKR Builder Template (Delta)"
+    },
+    {
+      name: "HBT Context (Human Business Technology)",
+      why: "You need to frame the problem by linking human needs to business and technology considerations.",
+      when: "Cross-functional participants need a shared understanding of human, business, and technology goals before designing solutions.",
+      story: "A retail organization used HBT Context to frame a mobile checkout concept. While the human need was speed, the exercise revealed business constraints around loss prevention and technical limits in legacy POS systems.",
+      link: "https://deltaairlines.sharepoint.com/:p:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQDiAOPW9va1RrS9qO2s59FnATabTt2u0zi20MyggQg7B38?e=bDB4fy",
+      linkLabel: "HBT Context Template (Delta)"
+    }
+  ],
+  design: [
+    {
+      name: "Assumptions Mapping",
+      why: "Your solution direction has embedded assumptions that could kill the feature if wrong.",
+      when: "Before committing to a specific solution — map what must be true for it to work, then test the riskiest assumption first.",
+      story: "The Concierge team mapped assumptions for the agent model. They realized their biggest risk was whether users would trust automated recommendations, prompting early validation. Two teams in a 3-day shaping accelerator tested pre-check-in behavior assumptions by building prototypes and validating through UserTesting.",
+      link: "https://app.mural.co/t/businessarchitecture3847/m/businessarchitecture3847/1775590861303/509804720dbcf3ebdab023951cbda272ba5f694f?wid=15-1776174944145",
+      linkLabel: "Assumptions Mapping Template (Mural)"
+    },
+    {
+      name: "Wireframing",
+      why: "You need to explore layout, structure, and functionality before investing in visual design.",
+      when: "You have a concept direction and need to quickly communicate structure and test with users.",
+      story: "Colleagues paired up to draw one most-valuable wireframe that would satisfy the user's greatest needs. Before investing in visual design, the OCC team wireframed multiple dashboard layouts. Early testing showed users preferred more visualization with contextual labels.",
+      link: "https://app.mural.co/template/949fadc4-d0c9-47c4-8736-ea68a124a400/1d19f03f-5f6f-42c3-8131-10f1583ead03",
+      linkLabel: "Wireframing Template (Mural)"
+    },
+    {
+      name: "Kiro Prototyping",
+      why: "You need a rapid functional prototype to validate ideas and enable hands-on learning.",
+      when: "You have a defined concept and need to test it with real users quickly — faster than traditional design sprints.",
+      story: "The Connected Servicing team assembled a clickable prototype in hours rather than weeks using Kiro. The prototype was realistic enough to uncover workflow gaps before development began.",
+      link: "https://deltaairlines.sharepoint.com/:u:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQAQvK9Nn4q2R4xeUBuyU4ZhAZG80I-BQnN1UTuSDEQ3KC0?e=anBoKy",
+      linkLabel: "Kiro Prototyping (Delta)"
+    },
+    {
+      name: "Rapid Storyboarding",
+      why: "You need to quickly visualize user interactions through simple sketched narratives.",
+      when: "You want to imagine the user flowing through the future solution and identify sequence issues before building.",
+      story: "Designers and engineers collaborated and sketched storyboard flows for a check-in experience. Seeing the steps sequentially highlighted an unnecessary approval screen that was later removed.",
+      link: "https://deltaairlines.sharepoint.com/:p:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQD63tcqbXsyTaXqRhOQVKsIAQOk2O7MMnLhjHVJaKH3Qbg?e=5bbFWP",
+      linkLabel: "Storyboarding Template (Delta)"
+    }
+  ],
+  experiment: [
+    {
+      name: "Moderated Testing",
+      why: "You need to observe real users interacting with your prototype while asking follow-up questions in real time.",
+      when: "You have a prototype ready and need to validate usability, comprehension, and value with direct observation.",
+      story: "The OCC team used moderated testing to capture feedback on their prototype. They met with users in a computer lab, displayed prototypes on screens, and followed their test plan. Each session lasted 15-20 minutes.",
+      link: "https://app.mural.co/template/f205efdd-0511-400b-a6a0-7ea1b3921fce/24445f46-e720-4ea9-82f1-3ebd9136506e?source=template-library",
+      linkLabel: "Moderated Testing Template (Mural)"
+    },
+    {
+      name: "Unmoderated Testing",
+      why: "You need to validate at scale without direct facilitation — asynchronous user feedback.",
+      when: "You want behavioral data from many users quickly, or need to validate navigation and task completion patterns.",
+      story: "To validate navigation changes at scale, a team ran unmoderated tests overnight. Heatmaps and task completion data confirmed the new layout reduced time to complete booking and checkout.",
+      link: "https://app.mural.co/template/f205efdd-0511-400b-a6a0-7ea1b3921fce/24445f46-e720-4ea9-82f1-3ebd9136506e?source=template-library",
+      linkLabel: "Testing Template (Mural)"
+    },
+    {
+      name: "Test Plan",
+      why: "You need to define what will be tested, with whom, and how success will be measured before running any test.",
+      when: "You have a prototype or concept with clear learning goals and need to structure the evaluation.",
+      story: "Before user testing with Reservations Agents, the Connected Servicing team created a test plan defining tasks, success metrics, and learning goals. This focus prevented scope drift during sessions.",
+      link: "https://deltaairlines.sharepoint.com/:w:/s/DPOInfoCenter-ShapingAcceleratorandEnablement/IQDPoFuJ8JCJRYoEFjdx_61sAUcF64JYVTDCBmRfKw9czLc?e=qLFsoB",
+      linkLabel: "Test Plan Template (Delta)"
+    },
+    {
+      name: "Synthesis",
+      why: "You need to integrate research findings and test outputs into clear insights and next steps.",
+      when: "After testing — you have raw data and need to turn it into actionable implications.",
+      story: "After a half-day of testing in the field, the team synthesized findings into three core insights. These insights became the foundation for ideation in the next workshop.",
+      link: "https://app.mural.co/template/5ba6a117-a578-49ab-abbf-2fb686b0d529/f6022aa3-249b-4f82-9d9c-2960de2ecc8e",
+      linkLabel: "Synthesis Template (Mural)"
+    }
+  ]
+};
+
+// ========== QUESTION GENERATION ==========
+function generateQuestions(title, context, user, stage) {
+  const questions = [];
+  const hasContext = context && context.length > 20;
+  const hasUser = user && user.length > 3;
+
+  // Universal questions based on gaps
+  if (!hasUser || isVague(user)) {
+    questions.push({
+      text: "Who specifically experiences this problem? Name a role, persona, or segment — not a category.",
+      why: "A clear user target determines everything downstream: what to measure, how to reach them, what success looks like."
+    });
+  }
+
+  // Stage-specific questions
+  if (stage === "discover") {
+    questions.push({
+      text: "What evidence do you have that this problem exists? (user complaints, data, observations, or just a hunch?)",
+      why: "Discovery requires grounding in reality. The answer reveals whether you need research or are ready to move forward."
+    });
+    questions.push({
+      text: "How are people currently working around this problem? What's their makeshift solution?",
+      why: "Workarounds reveal the true shape of the pain and often hint at the right solution direction."
+    });
+    if (hasContext) {
+      questions.push({
+        text: "What would change in your users' daily workflow if this problem disappeared overnight?",
+        why: "This surfaces the desired outcome and helps separate symptoms from root causes."
+      });
+    }
+  } else if (stage === "define") {
+    questions.push({
+      text: "What's the single metric that would improve if this problem were solved?",
+      why: "If you can't name one metric, the problem isn't defined sharply enough to build against."
+    });
+    questions.push({
+      text: "What has the team already tried or considered? Why didn't it work?",
+      why: "Knowing what failed narrows the solution space and prevents repeating mistakes."
+    });
+    questions.push({
+      text: "If you had to explain this problem to a skeptical VP in one sentence, what would you say?",
+      why: "Forces ruthless clarity. If you can't compress it, you haven't defined it."
+    });
+  } else if (stage === "design") {
+    questions.push({
+      text: "What's the riskiest assumption in your current solution direction?",
+      why: "Identifying your biggest unknown tells you what to test first, before investing in the full build."
+    });
+    questions.push({
+      text: "What's the simplest version of this that could deliver 80% of the value?",
+      why: "Helps separate the essential from the nice-to-have. Most features ship too big."
+    });
+    questions.push({
+      text: "What would make you kill this solution and try a different approach?",
+      why: "Defining kill criteria upfront prevents sunk-cost thinking."
+    });
+  } else if (stage === "experiment") {
+    questions.push({
+      text: "What specific behavior change do you expect to observe? In who? By how much?",
+      why: "Vague experiments produce vague results. Precision here determines whether you'll learn anything."
+    });
+    questions.push({
+      text: "What's the minimum sample size or time window needed to trust the results?",
+      why: "Running experiments too short or too small leads to false confidence."
+    });
+    questions.push({
+      text: "What will you do if the experiment shows a neutral result — neither positive nor negative?",
+      why: "Most experiments are inconclusive. Having a plan prevents stalling."
+    });
+  }
+
+  // Catch-all if too few
+  if (questions.length < 3) {
+    questions.push({
+      text: "Why does this matter NOW? What's the cost of doing nothing for 3 more months?",
+      why: "Urgency separates real priorities from perpetual backlog items."
+    });
+  }
+
+  return questions.slice(0, 5);
+}
+
+function isVague(str) {
+  const vague = ["all users", "everyone", "users", "people", "all", "anybody", "customers", "internal users", "the team"];
+  return vague.includes(str.trim().toLowerCase());
+}
+
+// ========== TEXT CLEANING + COMPRESSION ==========
+function cleanText(text) {
+  if (!text) return "";
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/what's actually happening\?/gi, "")
+    .replace(/this happens occurs/gi, "this occurs")
+    .replace(/during during/gi, "during")
+    .replace(/\.\./g, ".")
+    .trim();
+}
+
+function shortenText(text, maxLength) {
+  maxLength = maxLength || 220;
+  if (!text) return "";
+  const cleaned = cleanText(text);
+  if (cleaned.length <= maxLength) return cleaned;
+  return cleaned.substring(0, maxLength).trim() + "...";
+}
+
+// ========== SHAPING OUTPUT GENERATION ==========
+function generateShapingOutput(state) {
+  const { title, context, user, stage, answers, who, what, when, frequency, impactDetail, followupAnswers } = state;
+  const answersText = (answers || []).join(" ") + " " + (followupAnswers || []).join(" ");
+
+  const effectiveUser = who || user || "target users";
+  const effectiveWhat = what || title;
+
+  return `
+    <div class="output-section">
+      <div class="output-label">✅ Desired Outcome</div>
+      <div class="output-value">${shortenText(buildDesiredOutcome(effectiveUser, effectiveWhat, when, impactDetail), 180)}</div>
+    </div>
+    <div class="output-section">
+      <div class="output-label">🚀 Opportunity</div>
+      <div class="output-value">${shortenText(buildOpportunity(frequency, impactDetail, stage), 250)}</div>
+    </div>
+    <div class="output-section">
+      <div class="output-label">🎯 Core Problem</div>
+      <div class="output-value">${shortenText(buildCoreProblem(effectiveUser, effectiveWhat, when, frequency, impactDetail), 220)}</div>
+    </div>
+    <div class="output-section">
+      <div class="output-label">🧭 Concept Direction</div>
+      <div class="output-value">${shortenText(buildConceptDirection(effectiveUser, effectiveWhat, when, stage), 200)}</div>
+    </div>
+    <div class="output-section">
+      <div class="output-label">⚡ Simplest Starting Point</div>
+      <div class="output-value">${buildSimplestStart(effectiveUser, effectiveWhat, stage)}</div>
+    </div>
+  `;
+}
+
+function buildDesiredOutcome(user, what, when, impact) {
+  // One sentence. Real-world outcome. No process language.
+  if (what && when && impact) {
+    return `Eliminate the failure where ${user.toLowerCase()} ${what.toLowerCase().replace(/\.$/, '')} during ${when.toLowerCase()}, recovering ${impact.toLowerCase().replace(/\.$/, '')}.`;
+  }
+  if (what && impact) {
+    return `Reduce ${what.toLowerCase().replace(/\.$/, '')} for ${user.toLowerCase()}, recovering ${impact.toLowerCase().replace(/\.$/, '')}.`;
+  }
+  if (what) {
+    return `Resolve the condition where ${user.toLowerCase()} ${what.toLowerCase().replace(/\.$/, '')}.`;
+  }
+  return `Measurably improve the workflow for ${user.toLowerCase()} in the area where friction is highest.`;
+}
+
+function buildOpportunity(frequency, impact, stage) {
+  // 2-3 sentences max. Insight, not summary. Why now.
+  let parts = [];
+
+  if (frequency) {
+    parts.push(`This happens ${frequency.toLowerCase().replace(/\.$/, '')} — it's not an edge case, it's the default experience.`);
+  }
+  if (impact) {
+    parts.push(`The cost is concrete: ${impact.toLowerCase().replace(/\.$/, '')}.`);
+  }
+
+  if (parts.length >= 2) {
+    parts.push("The gap is recurring and compounding. Every cycle without intervention increases the total cost.");
+    return parts.join(" ");
+  }
+
+  if (frequency) {
+    return `${parts[0]} Repeated friction at this frequency erodes trust and creates compounding cost. The window to act is now — before the team normalizes the workaround.`;
+  }
+
+  if (stage === "discover") return "The problem space is active but unstructured. Attention exists now — without action, it will shift to the next fire.";
+  if (stage === "define") return "The problem is recognized but not yet sharp enough to build against. Defining it now prevents wasted effort downstream.";
+  if (stage === "design") return "The problem is understood. The risk now is building the wrong solution. Narrowing direction quickly preserves momentum.";
+  return "A hypothesis exists. Without rapid validation, the team will either over-invest or abandon prematurely.";
+}
+
+function buildCoreProblem(user, what, when, frequency, impact) {
+  // Structured: User + Failure + Moment + Impact. No solution references.
+  let statement = `<strong>${user}</strong>`;
+
+  if (what) {
+    statement += ` ${what.toLowerCase().replace(/\.$/, '')}`;
+  } else {
+    statement += ` face recurring friction in their workflow`;
+  }
+
+  if (when) {
+    statement += `, specifically ${when.toLowerCase().replace(/\.$/, '')}`;
+  }
+
+  statement += `.`;
+
+  if (frequency) {
+    statement += ` This happens ${frequency.toLowerCase().replace(/\.$/, '')}.`;
+  }
+
+  if (impact) {
+    statement += ` Cost: <strong>${impact}</strong>.`;
+  }
+
+  return statement;
+}
+
+function buildConceptDirection(user, what, when, stage) {
+  // 1-2 sentences. Specific to identified patterns. No generic advice.
+  if (stage === "discover") {
+    if (what && when) {
+      return `Investigate why ${what.toLowerCase().replace(/\.$/, '')} occurs specifically during ${when.toLowerCase().replace(/\.$/, '')}. Map the sequence of events that leads to the failure — the root cause is likely upstream of the visible symptom.`;
+    }
+    return `Identify the specific trigger point where the workflow breaks down for ${user.toLowerCase()}. Focus on observable behavior, not reported preferences.`;
+  }
+  if (stage === "define") {
+    if (what) {
+      return `Isolate the single measurable failure within "${what.toLowerCase().replace(/\.$/, '')}" that, if resolved, would unlock the most value. Write a one-sentence problem statement that a skeptic could test.`;
+    }
+    return `Narrow to one failure, one user segment, one metric. The goal is a problem definition tight enough that three people independently propose similar solutions.`;
+  }
+  if (stage === "design") {
+    if (what && when) {
+      return `Design for the specific moment: ${when.toLowerCase().replace(/\.$/, '')}. The intervention must directly interrupt the pattern where ${what.toLowerCase().replace(/\.$/, '')}. One flow, end-to-end, before expanding.`;
+    }
+    return `Target the single highest-friction moment in the workflow. Build for that moment only — validate before adding scope.`;
+  }
+  // experiment
+  if (what) {
+    return `Test whether directly addressing "${what.toLowerCase().replace(/\.$/, '')}" produces measurable behavior change in a controlled group within 2 weeks. Define pass/fail criteria before starting.`;
+  }
+  return `Ship the smallest possible intervention to a defined cohort. Measure one metric. Set a kill threshold. Run for 2 weeks maximum.`;
+}
+
+function buildSimplestStart(user, what, stage) {
+  // Immediately executable. Specific to problem. Natural question prompt.
+  if (stage === "discover") {
+    const question = what
+      ? `"Tell me about the last time ${what.toLowerCase().replace(/\.$/, '')}. What happened right before? What did you do next?"`
+      : `"Walk me through the last time this went wrong. Start from the beginning."`;
+    return `This week: talk to 3 ${user.toLowerCase()}. Ask one question:<br><br><em style="color:var(--delta-blue);">${question}</em><br><br>Listen for patterns in sequence, not opinions about solutions.`;
+  }
+  if (stage === "define") {
+    return `Write this sentence and get 3 people to agree it's accurate:<br><br><em style="color:var(--delta-blue);">"[${user}] can't [specific action] because [root cause], which costs [measurable impact]."</em><br><br>If they disagree — you haven't defined it yet.`;
+  }
+  if (stage === "design") {
+    return `Sketch the core interaction on paper. Show it to 3 ${user.toLowerCase()} with one question:<br><br><em style="color:var(--delta-blue);">"What would you expect to happen next?"</em><br><br>Where they hesitate = where your design is wrong.`;
+  }
+  // experiment
+  return `Define your pass/fail criteria right now:<br><br><em style="color:var(--delta-blue);">• Pass: [metric] improves by [X%] in [timeframe]<br>• Fail: less than [Y%] change after [Z] days</em><br><br>Then ship the smallest version that tests the core assumption.`;
+}
+
+// ========== METHOD RECOMMENDATION ==========
+function generateMethodOutput(stage) {
+  const methods = METHODS[stage] || METHODS.discover;
+
+  // SEMANTIC METHOD MATCHING — score each method against problem text
+  const problemText = `${state.title} ${state.what} ${state.who} ${state.context} ${state.impactDetail} ${state.frequency} ${state.when}`.toLowerCase();
+  const method = matchBestMethod(methods, problemText);
+
+  const { who, what, when: whenCtx, frequency, impactDetail, user, title } = state;
+  const effectiveUser = who || user || "your target users";
+  const effectiveWhat = what || title || "the identified problem";
+
+  // Tailored "Why This Fits" — connected to actual problem
+  const tailoredWhy = buildTailoredWhy(method, effectiveUser, effectiveWhat, whenCtx, stage);
+
+  // "What To Do This Week" — specific to method + problem
+  const whatToDo = buildWhatToDo(method, effectiveUser, effectiveWhat, stage);
+
+  // "Why This Matters Now" — urgency
+  const whyNow = buildWhyNow(effectiveWhat, frequency, impactDetail, stage);
+
+  // Bridge for example
+  const exampleBridge = buildExampleBridge(method, effectiveWhat, stage);
+
+  return `
+    <div class="method-card">
+      <div class="method-header">
+        <h3>${method.name}</h3>
+        <span class="method-badge">${stage.toUpperCase()}</span>
+      </div>
+      <div class="method-body">
+        <div class="method-row">
+          <div class="method-row-label">Why This Fits Your Problem</div>
+          <div class="method-row-value">${tailoredWhy}</div>
+        </div>
+        <div class="method-row">
+          <div class="method-row-label">When to Use</div>
+          <div class="method-row-value"><ul style="margin:0; padding-left:1rem; font-size:0.825rem; line-height:1.6;">
+            <li>You've identified the problem but lack direct user evidence</li>
+            <li>Multiple assumptions remain untested</li>
+            <li>The team hasn't spoken to the people who experience this</li>
+          </ul></div>
+        </div>
+        <div class="method-row">
+          <div class="method-row-label">What To Do This Week</div>
+          <div class="method-row-value">${whatToDo}</div>
+        </div>
+        <div class="method-row">
+          <div class="method-row-label">Real-World Example</div>
+          <div class="method-row-value" style="font-size:0.8rem; line-height:1.6;">
+            ${method.story}
+            <br><br><em style="color:var(--delta-blue); font-size:0.75rem;">${exampleBridge}</em>
+          </div>
+        </div>
+        <div class="method-row">
+          <div class="method-row-label" style="color:var(--delta-red);">Why This Matters Now</div>
+          <div class="method-row-value" style="font-size:0.8rem;">${whyNow}</div>
+        </div>
+        <div style="margin-top:1rem; padding-top:1rem; border-top:1px solid var(--delta-gray-200);">
+          <a class="method-link" href="${method.link}" target="_blank" style="font-size:0.8rem;">🚀 Start here: ${method.linkLabel} →</a>
+        </div>
+        <div style="margin-top:1.25rem; padding:0.85rem; background:var(--delta-blue-light); border-radius:6px; border-left:3px solid var(--delta-blue);">
+          <div style="font-size:0.7rem; font-weight:700; color:var(--delta-blue); text-transform:uppercase; margin-bottom:0.3rem;">Next Step</div>
+          <div style="font-size:0.825rem; color:#2a3a4a;">Run this method. Come back with findings. Then we score, decide, and move forward — or pivot.</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:1rem; font-size:0.7rem; color:var(--delta-gray-500);">Other methods available for this stage: <strong>${methods.slice(1).map(m => m.name).join(", ")}</strong></p>
+  `;
+}
+
+function buildTailoredWhy(method, user, what, when, stage) {
+  if (stage === "discover") {
+    return `You know ${user.toLowerCase()} are struggling with ${what.toLowerCase().replace(/\.$/, '')}${when ? ' during ' + when.toLowerCase().replace(/\.$/, '') : ''} — but you don't yet know <em>why</em> it happens or what's driving it. ${method.name} gives you that answer directly from the people who live it.`;
+  }
+  if (stage === "define") {
+    return `The problem around ${what.toLowerCase().replace(/\.$/, '')} is visible, but not yet sharp enough to build against. ${method.name} forces you to compress it into something testable — so the team builds against a real target, not a vague direction.`;
+  }
+  if (stage === "design") {
+    return `You have a direction for addressing ${what.toLowerCase().replace(/\.$/, '')} — but assumptions are embedded in it. ${method.name} exposes those assumptions before you invest real build effort. Cheaper to learn now than after a sprint.`;
+  }
+  // experiment
+  return `You believe a solution exists for ${what.toLowerCase().replace(/\.$/, '')} — ${method.name} gives you behavioral proof. Without it, you're committing resources on faith.`;
+}
+
+function buildWhatToDo(method, user, what, stage) {
+  if (stage === "discover") {
+    return `<ol style="margin:0; padding-left:1.1rem; font-size:0.825rem; line-height:1.8;">
+      <li><strong>Identify 5 ${user.toLowerCase()}</strong> who've experienced this in the last 2 weeks</li>
+      <li><strong>Ask one question:</strong> <em>"Tell me about the last time ${what.toLowerCase().replace(/\.$/, '')}. What happened right before?"</em></li>
+      <li><strong>Listen for:</strong> repeated sequences, emotional triggers, workarounds they've built</li>
+      <li><strong>Capture:</strong> 2–3 patterns across conversations (not individual opinions)</li>
+    </ol>`;
+  }
+  if (stage === "define") {
+    return `<ol style="margin:0; padding-left:1.1rem; font-size:0.825rem; line-height:1.8;">
+      <li><strong>Write 3 versions</strong> of the problem statement for ${what.toLowerCase().replace(/\.$/, '')}</li>
+      <li><strong>Test each</strong> with 2 stakeholders: "Does this match what you're seeing?"</li>
+      <li><strong>Pick the one</strong> that everyone agrees on without debate</li>
+      <li><strong>Assign one metric</strong> that would prove it's solved</li>
+    </ol>`;
+  }
+  if (stage === "design") {
+    return `<ol style="margin:0; padding-left:1.1rem; font-size:0.825rem; line-height:1.8;">
+      <li><strong>List your top 3 assumptions</strong> about the solution direction</li>
+      <li><strong>Rank by risk:</strong> which one, if wrong, kills the whole approach?</li>
+      <li><strong>Test the riskiest one</strong> with 3 ${user.toLowerCase()} this week using a sketch or mockup</li>
+      <li><strong>Decision:</strong> proceed, pivot, or kill based on their reactions</li>
+    </ol>`;
+  }
+  // experiment
+  return `<ol style="margin:0; padding-left:1.1rem; font-size:0.825rem; line-height:1.8;">
+    <li><strong>Define pass/fail:</strong> "[metric] moves [X%] in [Y days] = pass"</li>
+    <li><strong>Scope the smallest version</strong> that tests the core assumption only</li>
+    <li><strong>Select cohort:</strong> 20–50 ${user.toLowerCase()} who match the problem profile</li>
+    <li><strong>Ship and observe.</strong> No iteration during the test window.</li>
+  </ol>`;
+}
+
+function buildWhyNow(what, frequency, impact, stage) {
+  let parts = [];
+  if (frequency) parts.push(`This happens ${frequency.toLowerCase().replace(/\.$/, '')} — every cycle without action adds to the total cost.`);
+  if (impact) parts.push(`You're already losing: ${impact.toLowerCase().replace(/\.$/, '')}.`);
+
+  if (parts.length > 0) {
+    parts.push("Skipping this step means building on unvalidated assumptions — which is how teams waste quarters.");
+    return parts.join(" ");
+  }
+
+  if (stage === "discover") return "Without this step, you're guessing at the problem. Building on guesses is the most expensive mistake a product team makes.";
+  if (stage === "define") return "A vague problem definition means the team builds different things thinking they're aligned. This step prevents that divergence.";
+  if (stage === "design") return "Untested design assumptions have a ~70% failure rate in production. 30 minutes of testing now saves weeks of rework.";
+  return "Experiments without clear criteria become open-ended projects. Define the rules before you start.";
+}
+
+function buildExampleBridge(method, what, stage) {
+  return `This applies here because your situation — ${what.toLowerCase().replace(/\.$/, '')} — follows the same pattern: visible friction, unclear root cause, untested assumptions about what to do next.`;
+}
+
+// ========== NAVIGATION ==========
+function goToStep(step) {
+  [1,2,3,4].forEach(s => {
+    document.getElementById(`step-${s}`).classList.toggle("hidden", s !== step);
+  });
+  document.getElementById("loading").classList.add("hidden");
+
+  // Update progress
+  [1,2,3,4].forEach(s => {
+    const el = document.getElementById(`prog-${s}`);
+    el.classList.remove("active", "done");
+    if (s < step) el.classList.add("done");
+    if (s === step) el.classList.add("active");
+  });
+  [1,2,3].forEach(s => {
+    const line = document.getElementById(`line-${s}`);
+    line.classList.toggle("done", s < step);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function selectStage(stage, el) {
+  document.querySelectorAll(".stage-btn").forEach(b => b.classList.remove("selected"));
+  el.classList.add("selected");
+  state.stage = stage;
+
+  // Stage helper text
+  const descriptions = {
+    discover: "Focus on identifying the problem space. Talk to users first.",
+    define: "Clarify the core problem and who it impacts most.",
+    design: "Explore and validate potential solution directions.",
+    experiment: "Test, measure, and iterate with real users."
+  };
+  const helper = document.getElementById("stage-helper");
+  if (helper) helper.textContent = descriptions[stage] || "";
+
+  updateIntakeScore();
+}
+
+// ========== INTAKE SUB-STEPS & SCORING ==========
+let currentSubstep = 1;
+
+function goSubstep(n) {
+  [1,2,3,4].forEach(s => {
+    const el = document.getElementById(`substep-${s}`);
+    if (el) el.classList.toggle("hidden", s !== n);
+  });
+  currentSubstep = n;
+  updateIntakeScore();
+}
+
+function updateIntakeScore() {
+  const title = document.getElementById("idea-title").value.trim();
+  const context = document.getElementById("idea-context").value.trim();
+  const audience = document.getElementById("idea-user").value.trim();
+  const stage = state.stage;
+
+  let score = 0;
+  if (title.length > 5) score += 20;
+  if (context.length > 20) score += 20;
+  if (audience.length > 3) score += 15;
+  if (stage) score += 15;
+  // Bonus signals
+  if (context.toLowerCase().includes("customer") || context.toLowerCase().includes("passenger")) score += 10;
+  if (context.toLowerCase().includes("revenue") || context.toLowerCase().includes("cost")) score += 10;
+  if (context.toLowerCase().includes("delay") || context.toLowerCase().includes("complaint")) score += 10;
+  score = Math.min(score, 100);
+
+  // Update score display
+  document.getElementById("idea-score").textContent = score;
+  document.getElementById("idea-score").style.color = score >= 80 ? "var(--green)" : score >= 50 ? "var(--yellow)" : "var(--delta-red)";
+
+  // Update checklist
+  document.getElementById("str-title").innerHTML = `${title.length > 3 ? '✅' : '❌'} <span>Clarity</span>`;
+  document.getElementById("str-context").innerHTML = `${context.length > 15 ? '✅' : '❌'} <span>Context</span>`;
+  document.getElementById("str-audience").innerHTML = `${audience.length > 3 ? '✅' : '❌'} <span>Audience</span>`;
+  document.getElementById("str-stage").innerHTML = `${stage ? '✅' : '❌'} <span>Stage</span>`;
+
+  // Advice
+  const adviceEl = document.getElementById("strength-advice");
+  if (score < 50) adviceEl.textContent = "Add more detail to strengthen your idea.";
+  else if (score < 80) adviceEl.textContent = "Good start — keep refining your inputs.";
+  else adviceEl.textContent = "Strong idea — ready for shaping.";
+
+  // Progress bar
+  const filled = [title, context, audience, stage].filter(v => v).length;
+  const pct = Math.round((filled / 4) * 100);
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-pct").textContent = pct + "%";
+
+  // Dynamic CTA
+  const ctaBtn = document.getElementById("cta-button");
+  if (ctaBtn) {
+    if (score < 50) ctaBtn.textContent = "🚀 Keep Building";
+    else if (score < 80) ctaBtn.textContent = "🚀 Refine & Shape";
+    else ctaBtn.textContent = "🚀 Generate Shaping Plan";
+  }
+}
+
+function updateContextSuggestion() {
+  const text = document.getElementById("idea-context").value;
+  const el = document.getElementById("context-suggestion");
+  if (!text || text.length < 5) { el.textContent = ""; return; }
+
+  const lower = text.toLowerCase();
+  if (lower.includes("boarding") || lower.includes("gate")) {
+    el.textContent = "💡 This may relate to gate operations or passenger flow — consider specifying the station or scenario.";
+  } else if (lower.includes("delay") || lower.includes("late")) {
+    el.textContent = "💡 Clarify whether this is operational or customer-facing delay to sharpen prioritization.";
+  } else if (lower.includes("crew") || lower.includes("pilot") || lower.includes("flight attendant")) {
+    el.textContent = "💡 Crew-related — specify if this is scheduling, communication, or operational support.";
+  } else if (lower.includes("app") || lower.includes("digital")) {
+    el.textContent = "💡 Digital product — which platform? (fly delta app, internal tool, kiosk, etc.)";
+  } else if (text.length > 10 && text.length < 40) {
+    el.textContent = "💡 Try expanding with more detail about who's affected and the impact.";
+  } else {
+    el.textContent = "";
+  }
+}
+
+// ========== STEP HANDLERS ==========
+let coachPhase = 1; // 1 = core questions, 2 = follow-ups shown, 3 = ready for output
+
+function startShaping() {
+  state.title = document.getElementById("idea-title").value.trim();
+  state.context = document.getElementById("idea-context").value.trim();
+  state.user = document.getElementById("idea-user").value.trim();
+
+  if (!state.title || !state.stage) {
+    alert("Please fill in at least the idea title and select a stage.");
+    return;
+  }
+
+  coachPhase = 1;
+  showLoading("Your shaping coach is reviewing your inputs...");
+
+  setTimeout(() => {
+    renderCoachReflection();
+    renderDataInsights();
+    renderCoreQuestions();
+    document.getElementById("followup-card").style.display = "none";
+    goToStep(2);
+  }, 1000);
+}
+
+function renderCoachReflection() {
+  const { title, context, user, stage } = state;
+  const stageMap = { discover: "Discovery", define: "Definition", design: "Design", experiment: "Experimentation" };
+
+  let html = `<div style="font-size:0.85rem; line-height:1.7; color:#2a3a4a;">`;
+
+  // Idea paraphrase
+  html += `<p style="margin-bottom:0.6rem;"><span style="color:var(--delta-blue); font-weight:600;">Idea:</span> `;
+  if (title.length > 40) {
+    html += `You're exploring ${title.toLowerCase()} — sounds like a workflow or experience improvement.`;
+  } else {
+    html += `"${title}" — got it. Let's see if there's a real problem underneath this.`;
+  }
+  html += `</p>`;
+
+  // Context
+  html += `<p style="margin-bottom:0.6rem;"><span style="color:var(--delta-blue); font-weight:600;">Context:</span> `;
+  if (context && context.length > 40) {
+    // Synthesize, don't just echo
+    const hasNumbers = context.match(/\d+/);
+    const hasUsers = context.toLowerCase().match(/user|customer|team|hire|manager/);
+    if (hasNumbers && hasUsers) {
+      html += `Good — you've got some specifics here. I can see both a user angle and some data to work with.`;
+    } else if (hasNumbers) {
+      html += `You've referenced some data. That's a start — let's make sure it connects to a real user pain.`;
+    } else if (hasUsers) {
+      html += `You've mentioned who's involved. Now let's pressure-test whether the pain is real and recurring.`;
+    } else {
+      html += `Some background provided. I'll probe where it's thin.`;
+    }
+  } else if (context && context.length > 0) {
+    html += `Thin context. I'll need to ask more to understand the landscape.`;
+  } else {
+    html += `<em style="color:var(--yellow);">None provided.</em> I'll work with what you've got, but expect more questions.`;
+  }
+  html += `</p>`;
+
+  // Stage
+  html += `<p style="margin-bottom:0.4rem;"><span style="color:var(--delta-blue); font-weight:600;">Stage:</span> ${stageMap[stage] || stage}`;
+  // Internal override check
+  if (stage === "design" && (!context || context.length < 40) && (!user || user.length < 5)) {
+    html += ` <span style="color:var(--delta-red); font-size:0.75rem; font-weight:600;">— heads up, your inputs look more like Discovery. I'll calibrate accordingly.</span>`;
+  } else if (stage === "experiment" && (!user || isVague(user))) {
+    html += ` <span style="color:var(--delta-red); font-size:0.75rem; font-weight:600;">— can't experiment without a defined audience. Let's fix that first.</span>`;
+  } else {
+    html += ` — works for me.`;
+  }
+  html += `</p>`;
+
+  html += `</div>`;
+  document.getElementById("reflection-body").innerHTML = html;
+}
+
+function renderDataInsights() {
+  const { context, title } = state;
+  const card = document.getElementById("data-insights-card");
+
+  if (!context || context.length < 30) {
+    card.style.display = "none";
+    return;
+  }
+
+  card.style.display = "block";
+  const lower = context.toLowerCase();
+  const insights = [];
+
+  // Generate real insights, not labels
+  if (lower.match(/\d+\s*%/)) {
+    const match = context.match(/\d+\s*%/);
+    insights.push(`You mentioned <strong>${match[0]}</strong> — that's a concrete data point. Anchor your success metric around this.`);
+  }
+  if (lower.match(/\d+\s*(hour|min|day|week)/i)) {
+    const match = context.match(/\d+\s*(hour|min|day|week)s?/i);
+    insights.push(`Time cost spotted: <strong>${match[0]}</strong>. If you can validate this, it's your strongest argument for prioritization.`);
+  }
+  if (lower.match(/(support ticket|complaint|escalat|frustrat|pain)/)) {
+    insights.push(`User pain signal detected. This suggests the problem is real and recurring — not theoretical.`);
+  }
+  if (lower.match(/(churn|drop|declin|decrease|loss)/)) {
+    insights.push(`Negative trend language. If this connects to a metric leadership cares about, you have urgency built in.`);
+  }
+  if (lower.match(/(interview|research|survey|tested|validated)/)) {
+    insights.push(`You've done some validation already. That puts you ahead of most ideas at this stage.`);
+  }
+  if (lower.match(/(everyone|all user|company-wide)/)) {
+    insights.push(`<span style="color:var(--yellow);">⚠️ Broad scope language.</span> "Everyone" usually means you haven't found the specific user yet. Let's narrow it.`);
+  }
+
+  if (insights.length === 0) {
+    insights.push(`Your context gives me direction but no hard signals. We'll need to surface those in the questions below.`);
+  }
+
+  document.getElementById("data-insights-body").innerHTML = `
+    <p style="font-size:0.8rem; color:var(--delta-gray-500); margin-bottom:0.75rem;">Based on what you shared, here's what I'm picking up:</p>
+    <ul style="font-size:0.825rem; line-height:1.7; padding-left:1rem;">
+      ${insights.map(i => `<li style="margin-bottom:0.4rem;">${i}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function renderCoreQuestions() {
+  const { user, title } = state;
+
+  // Core questions — conversational, not rigid
+  let html = `<p style="font-size:0.8rem; color:var(--delta-gray-500); margin-bottom:1rem;">Don't overthink these. Quick, honest answers work best.</p>`;
+
+  const questions = [
+    { id: "pq-who", text: "Who's directly impacted?", hint: user ? `You said "${user}" — can you get more specific?` : "Name a real role or segment, not a category.", placeholder: "e.g. Engineering managers with 8+ direct reports" },
+    { id: "pq-what", text: "What's actually happening?", hint: "Describe the failure or friction — not the solution you're imagining.", placeholder: "e.g. They spend 45 min/week manually compiling status updates" },
+    { id: "pq-when", text: "When and where does this occur?", hint: "Pin it to a moment, workflow, or trigger.", placeholder: "e.g. Every Monday morning before the leadership sync" },
+    { id: "pq-frequency", text: "How often?", hint: "Daily? Weekly? Every time X happens?", placeholder: "e.g. Weekly, every team, without exception" },
+    { id: "pq-impact", text: "What does this cost?", hint: "Time, money, morale, missed outcomes — anything measurable.", placeholder: "e.g. ~12 hrs/week of manager time across 20 teams" }
+  ];
+
+  html += questions.map(q => `
+    <div class="question-item">
+      <div class="question-text">${q.text}</div>
+      <div class="question-why">${q.hint}</div>
+      <textarea id="${q.id}" rows="2" placeholder="${q.placeholder}"></textarea>
+    </div>
+  `).join("");
+
+  document.getElementById("coach-questions").innerHTML = html;
+}
+
+function processAnswers() {
+  // Collect core answers
+  const who = document.getElementById("pq-who").value.trim();
+  const what = document.getElementById("pq-what").value.trim();
+  const when = document.getElementById("pq-when").value.trim();
+  const freq = document.getElementById("pq-frequency").value.trim();
+  const impact = document.getElementById("pq-impact").value.trim();
+
+  state.who = who;
+  state.what = what;
+  state.when = when;
+  state.frequency = freq;
+  state.impactDetail = impact;
+  state.answers = [who, what, when, freq, impact];
+
+  // Evaluate answer quality
+  const filled = state.answers.filter(a => a.length > 5).length;
+  const weak = filled < 3;
+  const noImpact = !impact || impact.length < 5;
+  const noWho = !who || who.length < 5 || isVague(who);
+
+  // Phase 2: show follow-ups if needed
+  if (coachPhase === 1 && (weak || noImpact || noWho)) {
+    coachPhase = 2;
+    showFollowups(noWho, noImpact, weak);
+    return;
+  }
+
+  // Collect follow-up answers if they exist
+  state.followupAnswers = [];
+  const followupEls = document.querySelectorAll("[id^='fq-']");
+  followupEls.forEach(el => {
+    if (el.value.trim()) state.followupAnswers.push(el.value.trim());
+  });
+
+  // Ready for output
+  showLoading("Synthesizing everything into structured output...");
+  setTimeout(() => {
+    document.getElementById("shaping-output").innerHTML = generateShapingOutput(state);
+    goToStep(3);
+    updateScore();
+  }, 1500);
+}
+
+function showFollowups(noWho, noImpact, weak) {
+  const card = document.getElementById("followup-card");
+  const container = document.getElementById("followup-container");
+  card.style.display = "block";
+
+  let html = `<p style="font-size:0.8rem; color:var(--delta-gray-500); margin-bottom:0.85rem;">I'm still missing a few pieces. One more round:</p>`;
+
+  let followups = [];
+
+  if (noWho) {
+    followups.push({ id: "fq-evidence", text: "Who exactly feels this pain? Give me a name, role, or team — not 'users'.", placeholder: "e.g. The 3 senior PMs on the Growth team" });
+  }
+  if (noImpact) {
+    followups.push({ id: "fq-cost", text: "What's the cost of this problem continuing? Time, money, or opportunity lost.", placeholder: "e.g. $50k/quarter in delayed launches" });
+  }
+  if (weak) {
+    followups.push({ id: "fq-evidence2", text: "What evidence do you have this is a real problem — not just a hunch?", placeholder: "e.g. 3 teams mentioned it in retros last quarter" });
+  }
+
+  // Stage-specific probe
+  if (state.stage === "discover") {
+    followups.push({ id: "fq-workaround", text: "How are people working around this today?", placeholder: "e.g. Manual spreadsheets, Slack reminders" });
+  } else if (state.stage === "define" || state.stage === "design") {
+    followups.push({ id: "fq-urgency", text: "Why now? What breaks if you wait another quarter?", placeholder: "e.g. New hires doubled — the manual process won't scale" });
+  }
+
+  html += followups.map(q => `
+    <div class="question-item">
+      <div class="question-text">${q.text}</div>
+      <textarea id="${q.id}" rows="2" placeholder="${q.placeholder}"></textarea>
+    </div>
+  `).join("");
+
+  container.innerHTML = html;
+
+  // Scroll to follow-ups
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function generateOutput() {
+  processAnswers();
+}
+
+function showMethod() {
+  // Save the idea to dashboard when advancing to method (idea is fully scored)
+  if (state.title && state._lastScore) {
+    saveCurrentIdea(state._lastScore.finalScore, state._lastScore.tier, state._lastScore.problemQuality, state._lastScore.routing);
+  }
+
+  showLoading("Matching best-fit method from resource library...");
+
+  setTimeout(() => {
+    document.getElementById("method-output").innerHTML = generateMethodOutput(state.stage);
+    goToStep(4);
+  }, 1000);
+}
+
+function restart() {
+  state = { title: "", context: "", user: "", stage: "", questions: [], answers: [], followupAnswers: [], followupCount: 0, who: "", what: "", when: "", frequency: "", impactDetail: "" };
+  coachPhase = 1;
+  document.getElementById("idea-title").value = "";
+  document.getElementById("idea-context").value = "";
+  document.getElementById("idea-user").value = "";
+  document.querySelectorAll(".stage-btn").forEach(b => b.classList.remove("selected"));
+  goToStep(1);
+}
+
+function showLoading(text) {
+  document.getElementById("loading-text").textContent = text;
+  [1,2,3,4].forEach(s => document.getElementById(`step-${s}`).classList.add("hidden"));
+  document.getElementById("loading").classList.remove("hidden");
+}
+
+// ========== SCORING SYSTEM (TWO-LAYER PRIORITIZATION ENGINE) ==========
+const VAGUE_USERS = ["all users", "everyone", "users", "people", "all", "anybody", "anyone", "the team", "customers", "internal users"];
+
+function isVagueUser(u) {
+  if (!u) return true;
+  return VAGUE_USERS.includes(u.trim().toLowerCase()) || u.trim().length < 4;
+}
+
+function getProblemClarity() {
+  const who = state.who || "";
+  const what = state.what || "";
+  const when = state.when || "";
+  const freq = state.frequency || "";
+  const impact = state.impactDetail || "";
+  const filled = [who, what, when, freq, impact].filter(a => a.length > 8).length;
+  if (filled >= 4) return { level: "high", modifier: 1.1, label: "High (×1.1)" };
+  if (filled >= 2) return { level: "medium", modifier: 1.0, label: "Medium (×1.0)" };
+  return { level: "low", modifier: 0.8, label: "Low (×0.8)" };
+}
+
+// Org modifier weights
+const ORG_WEIGHTS = {
+  worktype: { mandate: 1.5, valueprop: 1.2, cbf: 1.0, enhancement: 0.7 },
+  readiness: { ready: 1.4, partial: 1.0, "mostly-missing": 0.7, placeholder: 0.4 },
+  progress: { "in-progress": 1.3, "dev-ready": 1.1, "new": 0.9, done: 0.3 },
+  timeline: { carryover: 1.2, "new": 1.0 },
+  leadership: { a: 1.5, b: 1.2, c: 1.0, unknown: 0.8 }
+};
+
+let orgInferred = { worktype: "", readiness: "", progress: "", timeline: "", leadership: "" };
+let orgOverrideMode = false;
+
+function inferOrgContext() {
+  const allText = `${state.title} ${state.context} ${state.what} ${state.who} ${state.impactDetail} ${state.frequency}`.toLowerCase();
+  const impact = parseInt(document.getElementById("score-impact").value) || 3;
+  const confidence = parseInt(document.getElementById("score-confidence").value) || 3;
+  const clarity = getProblemClarity();
+
+  // 1. WORK TYPE
+  let worktype = "cbf";
+  if (allText.match(/safety|compliance|regulat|legal|faa|dot|security|mandate/)) worktype = "mandate";
+  else if (allText.match(/customer|revenue|growth|retention|loyalty|nps|experience|passenger|satisfaction/)) worktype = "valueprop";
+  else if (allText.match(/inefficien|delay|error|rework|waste|manual|slow|broken|friction|cost/)) worktype = "cbf";
+  else if (allText.match(/minor|improve|enhance|tweak|nice.to.have|cosmetic|polish/)) worktype = "enhancement";
+
+  // 2. LEADERSHIP PRIORITY
+  let leadership = "unknown";
+  if (allText.match(/enterprise|transform|strategic|digital.transform|company.wide|ceo|cto|cio/)) leadership = "a";
+  else if (allText.match(/platform|loyalty|fleet|skymiles|optimization|infrastructure|data/)) leadership = "b";
+  else if (allText.match(/frontline|airport|gate|agent|crew|operations|station|ramp|service/)) leadership = "c";
+
+  // 3. DEVELOPMENT READINESS
+  let readiness = "partial";
+  if (clarity.level === "high" && confidence >= 4) readiness = "ready";
+  else if (clarity.level === "medium" || confidence === 3) readiness = "partial";
+  else if (clarity.level === "low" || confidence <= 2) readiness = "mostly-missing";
+  if (!state.what && !state.context) readiness = "placeholder";
+
+  // 4. PROGRESS STATUS
+  let progress = "new";
+  if (allText.match(/tested|piloted|a\/b|experiment|validated|measured|shipped/)) progress = "dev-ready";
+  else if (allText.match(/interview|observed|researched|talked to|spoke with|gathered|collected/)) progress = "in-progress";
+  else if (allText.match(/resolved|fixed|done|launched|cancelled|deprecated/)) progress = "done";
+
+  // 5. TIMELINE
+  let timeline = "new";
+  if (allText.match(/ongoing|recurring|persistent|years|months|always|every quarter|carryover|backlog/)) timeline = "carryover";
+
+  orgInferred = { worktype, readiness, progress, timeline, leadership };
+  return orgInferred;
+}
+
+function renderOrgInferred() {
+  const labels = {
+    worktype: { mandate: "Mandate", valueprop: "Value Prop", cbf: "CBF", enhancement: "Enhancement" },
+    readiness: { ready: "Ready", partial: "Partial", "mostly-missing": "Mostly Missing", placeholder: "Placeholder" },
+    progress: { "in-progress": "In Progress", "dev-ready": "Development Ready", "new": "New", done: "Done / Cancelled" },
+    timeline: { carryover: "Carryover", "new": "New" },
+    leadership: { a: "Group A (Highest)", b: "Group B", c: "Group C", unknown: "Unknown" }
+  };
+
+  const weights = {
+    worktype: ORG_WEIGHTS.worktype[orgInferred.worktype],
+    readiness: ORG_WEIGHTS.readiness[orgInferred.readiness],
+    progress: ORG_WEIGHTS.progress[orgInferred.progress],
+    timeline: ORG_WEIGHTS.timeline[orgInferred.timeline],
+    leadership: ORG_WEIGHTS.leadership[orgInferred.leadership]
+  };
+
+  const items = [
+    { key: "worktype", label: "Work Type", icon: "📋" },
+    { key: "readiness", label: "Readiness", icon: "🔧" },
+    { key: "progress", label: "Progress", icon: "📈" },
+    { key: "timeline", label: "Timeline", icon: "🕐" },
+    { key: "leadership", label: "Leadership", icon: "👔" }
+  ];
+
+  document.getElementById("org-inferred-display").innerHTML = items.map(item => `
+    <div style="background:var(--delta-gray-50); border:1px solid var(--delta-gray-200); border-radius:6px; padding:0.6rem 0.75rem;">
+      <div style="font-size:0.6rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">${item.icon} ${item.label}</div>
+      <div style="font-size:0.825rem; font-weight:700; color:var(--delta-blue); margin-top:0.2rem;">${labels[item.key][orgInferred[item.key]] || "—"}</div>
+      <div style="font-size:0.65rem; color:var(--delta-gray-500);">×${weights[item.key]?.toFixed(1) || "1.0"}</div>
+    </div>
+  `).join("");
+}
+
+function getOrgModifier() {
+  // Use inferred values (or overrides if active)
+  const src = orgOverrideMode ? getOverrideValues() : orgInferred;
+
+  const w1 = ORG_WEIGHTS.worktype[src.worktype] || 1.0;
+  const w2 = ORG_WEIGHTS.readiness[src.readiness] || 1.0;
+  const w3 = ORG_WEIGHTS.progress[src.progress] || 1.0;
+  const w4 = ORG_WEIGHTS.timeline[src.timeline] || 1.0;
+  const w5 = ORG_WEIGHTS.leadership[src.leadership] || 1.0;
+
+  return { value: w1 * w2 * w3 * w4 * w5, filled: 5 };
+}
+
+function getOverrideValues() {
+  return {
+    worktype: document.getElementById("org-worktype").value || orgInferred.worktype,
+    readiness: document.getElementById("org-readiness").value || orgInferred.readiness,
+    progress: document.getElementById("org-progress").value || orgInferred.progress,
+    timeline: document.getElementById("org-timeline").value || orgInferred.timeline,
+    leadership: document.getElementById("org-leadership").value || orgInferred.leadership
+  };
+}
+
+function confirmOrg() {
+  document.getElementById("org-status-label").textContent = "✓ Confirmed";
+  document.getElementById("org-status-label").style.color = "var(--green)";
+}
+
+function showOrgOverride() {
+  orgOverrideMode = true;
+  const panel = document.getElementById("org-override-panel");
+  panel.style.display = "block";
+  document.getElementById("org-status-label").textContent = "Manual override active";
+  document.getElementById("org-status-label").style.color = "var(--yellow)";
+
+  // Populate selects with inferred defaults
+  populateSelect("org-worktype", [["mandate","Mandate"],["valueprop","Value Prop"],["cbf","CBF"],["enhancement","Enhancement"]], orgInferred.worktype);
+  populateSelect("org-readiness", [["ready","Ready"],["partial","Partial"],["mostly-missing","Mostly Missing"],["placeholder","Placeholder"]], orgInferred.readiness);
+  populateSelect("org-progress", [["in-progress","In Progress"],["dev-ready","Development Ready"],["new","New"],["done","Done / Cancelled"]], orgInferred.progress);
+  populateSelect("org-timeline", [["carryover","Carryover"],["new","New"]], orgInferred.timeline);
+  populateSelect("org-leadership", [["a","Group A"],["b","Group B"],["c","Group C"],["unknown","Unknown"]], orgInferred.leadership);
+}
+
+function populateSelect(id, options, defaultVal) {
+  const el = document.getElementById(id);
+  el.innerHTML = options.map(([val, label]) =>
+    `<option value="${val}" ${val === defaultVal ? 'selected' : ''}>${label}</option>`
+  ).join("");
+}
+
+function updateScore() {
+  const impact = parseInt(document.getElementById("score-impact").value);
+  const effort = parseInt(document.getElementById("score-effort").value);
+  const confidence = parseInt(document.getElementById("score-confidence").value);
+
+  document.getElementById("score-impact-val").textContent = impact;
+  document.getElementById("score-effort-val").textContent = effort;
+  document.getElementById("score-confidence-val").textContent = confidence;
+
+  // === HARD GUARDRAILS ===
+  let blocked = false;
+  let flags = [];
+
+  if (confidence <= 2) {
+    blocked = true;
+    flags.push({ type: "red", text: "🛑 BLOCKED: Confidence ≤ 2 — NOT READY. No evidence exists." });
+  }
+  if (impact <= 2) {
+    blocked = true;
+    flags.push({ type: "red", text: "🛑 BLOCKED: Impact ≤ 2 — NOT READY. Problem lacks value." });
+  }
+  if (isVagueUser(state.user) && state.user) {
+    flags.push({ type: "yellow", text: "⚠️ Vague target user — score penalized." });
+  }
+
+  document.getElementById("guardrails").innerHTML = flags.map(f =>
+    `<div class="flag flag-${f.type}">${f.text}</div>`
+  ).join("");
+
+  // === BLOCKED STATE ===
+  if (blocked) {
+    document.getElementById("base-score").textContent = "—";
+    document.getElementById("base-score").style.color = "var(--red)";
+    document.getElementById("base-verdict").textContent = "NOT READY";
+    document.getElementById("base-verdict").className = "score-verdict verdict-low";
+    document.getElementById("final-base").textContent = "—";
+    document.getElementById("final-org").textContent = "—";
+    document.getElementById("final-score").textContent = "—";
+    document.getElementById("final-score").style.color = "var(--red)";
+
+    // Classification displays for blocked state
+    document.getElementById("priority-classification").innerHTML = `
+      <div style="background:#fee2e2; border-left:4px solid var(--red); border-radius:0 6px 6px 0; padding:0.85rem;">
+        <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Priority Classification</div>
+        <div style="font-size:1.3rem; font-weight:800; color:var(--red); margin-top:0.2rem;">BLOCKED</div>
+      </div>`;
+    document.getElementById("problem-quality-display").innerHTML = "";
+    document.getElementById("routing-decision").innerHTML = `
+      <div style="background:#fee2e2; border-radius:6px; padding:0.85rem;">
+        <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600; margin-bottom:0.3rem;">🧭 Routing Decision</div>
+        <div style="font-size:0.85rem; font-weight:600; color:var(--red);">➡️ Shaping & Refinement — Not ready for prioritization. Return to discovery.</div>
+      </div>`;
+
+    document.getElementById("score-diagnostic").innerHTML = `
+      <div style="background:#fee2e2; border:1px solid #fecaca; border-radius:6px; padding:0.85rem; font-size:0.8rem; line-height:1.6;">
+        <div style="font-weight:700; color:var(--red); margin-bottom:0.4rem;">🔍 Why this is blocked:</div>
+        <div><strong>Impact (${impact}/5):</strong> ${getImpactDiag(impact)}</div>
+        <div><strong>Effort (${effort}/5):</strong> ${getEffortDiag(effort)}</div>
+        <div><strong>Confidence (${confidence}/5):</strong> ${getConfidenceDiag(confidence)}</div>
+      </div>`;
+
+    document.getElementById("score-assessment").innerHTML = `
+      <div class="assess-item assess-warn"><div class="assess-icon">✗</div>
+      <span><strong>Do not move forward.</strong> This idea is unvalidated or lacks meaningful impact. Return to discovery.</span></div>`;
+    document.getElementById("score-improvement").innerHTML = buildImprovementPath(impact, effort, confidence, state.user);
+    // Still infer org for display but it doesn't affect the decision
+    inferOrgContext();
+    renderOrgInferred();
+    document.getElementById("final-org").textContent = "IGNORED";
+    document.getElementById("final-org").style.color = "var(--delta-gray-500)";
+    renderStakeholders("blocked");
+    renderSystemImpact();
+    return;
+  }
+
+  // === LAYER 1: BASE SCORE ===
+  let rawScore = (Math.pow(impact, 2) * Math.pow(confidence, 2)) / Math.pow(effort, 2);
+  if (isVagueUser(state.user) && state.user) rawScore *= 0.7;
+  const clarity = getProblemClarity();
+  const baseScore = rawScore * clarity.modifier;
+  const baseDisplay = Math.min(5.0, baseScore / 5).toFixed(1);
+  const baseNum = parseFloat(baseDisplay);
+
+  // Display base
+  document.getElementById("base-score").textContent = baseDisplay;
+  document.getElementById("base-score").style.color = baseNum >= 4.5 ? "var(--green)" : baseNum >= 3.5 ? "var(--yellow)" : baseNum >= 2.5 ? "#c2410c" : "var(--red)";
+  const bv = document.getElementById("base-verdict");
+  if (baseNum >= 4.5) { bv.textContent = "✅ STRONG"; bv.className = "score-verdict verdict-high"; }
+  else if (baseNum >= 3.5) { bv.textContent = "🟡 PROMISING"; bv.className = "score-verdict verdict-medium"; }
+  else if (baseNum >= 2.5) { bv.textContent = "⚠️ NOT READY"; bv.className = "score-verdict verdict-notready"; }
+  else { bv.textContent = "❌ STOP"; bv.className = "score-verdict verdict-low"; }
+
+  // Diagnostic
+  document.getElementById("score-diagnostic").innerHTML = `
+    <div style="background:var(--delta-gray-50); border:1px solid var(--delta-gray-200); border-radius:6px; padding:0.85rem; font-size:0.8rem; line-height:1.7;">
+      <div style="font-weight:700; color:var(--delta-blue); margin-bottom:0.4rem;">🔍 Problem Strength Breakdown:</div>
+      <div><strong>Impact (${impact}/5):</strong> ${getImpactDiag(impact)}</div>
+      <div><strong>Effort (${effort}/5):</strong> ${getEffortDiag(effort)}</div>
+      <div><strong>Confidence (${confidence}/5):</strong> ${getConfidenceDiag(confidence)}</div>
+      <div style="color:var(--delta-gray-500);"><strong>Clarity:</strong> ${clarity.label}</div>
+    </div>`;
+
+  // === LAYER 2: ORG MODIFIER (AUTO-INFERRED) ===
+  inferOrgContext();
+  renderOrgInferred();
+  const org = getOrgModifier();
+  const orgDisplay = org.value.toFixed(2);
+  document.getElementById("final-base").textContent = baseDisplay;
+  document.getElementById("final-org").textContent = org.filled > 0 ? "×" + orgDisplay : "—";
+  document.getElementById("final-org").style.color = org.value >= 1.5 ? "var(--green)" : org.value >= 1.0 ? "var(--delta-blue)" : "var(--yellow)";
+
+  // === FINAL SCORE ===
+  const finalRaw = org.filled > 0 ? baseNum * org.value : baseNum;
+  const finalDisplay = Math.min(5.0, finalRaw).toFixed(1);
+  const finalNum = parseFloat(finalDisplay);
+
+  document.getElementById("final-score").textContent = finalDisplay;
+  document.getElementById("final-score").style.color = finalNum >= 4.5 ? "var(--green)" : finalNum >= 3.5 ? "var(--yellow)" : finalNum >= 2.5 ? "#c2410c" : "var(--red)";
+
+  // Decision for stakeholder routing
+  let decision = "";
+  if (finalNum >= 4.5) decision = "high";
+  else if (finalNum >= 2.5) decision = "mid";
+  else decision = "low";
+
+  // === PRIORITY CLASSIFICATION (Delta-Aligned) ===
+  const tier = classifyPriorityTier(orgInferred, orgInferred.timeline, orgInferred.progress, orgInferred.readiness);
+  const problemQuality = assessProblemQuality();
+  const routing = getRoutingDecision(problemQuality);
+  const tierExplanation = explainPriorityTier(orgInferred, tier);
+
+  // Priority Classification display
+  const tierColors = { HIGHEST: "var(--green)", HIGH: "#16a34a", MEDIUM: "var(--yellow)", LOW: "var(--red)" };
+  document.getElementById("priority-classification").innerHTML = `
+    <div style="background:var(--delta-gray-50); border-left:4px solid ${tierColors[tier] || 'var(--delta-gray-500)'}; border-radius:0 6px 6px 0; padding:0.85rem;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Priority Classification</div>
+          <div style="font-size:1.3rem; font-weight:800; color:${tierColors[tier]}; margin-top:0.2rem;">${tier}</div>
+        </div>
+        <div style="font-size:0.75rem; color:var(--delta-gray-500); text-align:right; max-width:60%;">${tierExplanation}</div>
+      </div>
+    </div>`;
+
+  // Problem Signal Quality display
+  const pqColors = { HIGH: "var(--green)", MEDIUM: "var(--yellow)", LOW: "var(--red)" };
+  document.getElementById("problem-quality-display").innerHTML = `
+    <div style="background:var(--delta-gray-50); border-left:4px solid ${pqColors[problemQuality]}; border-radius:0 6px 6px 0; padding:0.75rem;">
+      <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600;">Problem Signal Quality</div>
+      <div style="font-size:1rem; font-weight:700; color:${pqColors[problemQuality]}; margin-top:0.15rem;">${problemQuality}</div>
+    </div>`;
+
+  // Routing Decision display
+  document.getElementById("routing-decision").innerHTML = `
+    <div style="background:${problemQuality === 'HIGH' ? '#dcfce7' : problemQuality === 'MEDIUM' ? '#fef3c7' : '#fee2e2'}; border-radius:6px; padding:0.85rem;">
+      <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600; margin-bottom:0.3rem;">🧭 Routing Decision</div>
+      <div style="font-size:0.85rem; font-weight:600; color:#1a2a3a;">${routing}</div>
+    </div>`;
+
+  // Interpretation: strong problem + low org?
+  const assessments = [];
+  if (baseNum >= 4.5 && org.value < 1.0 && org.filled > 0) {
+    assessments.push({ type: "low", text: "Good idea, not prioritized right now. The problem is real but organizational context deprioritizes it." });
+  } else if (finalNum >= 4.5) {
+    assessments.push({ type: "high", text: "Validated, high-impact, organizationally aligned. Proceed to solutions." });
+  } else if (finalNum >= 3.5) {
+    assessments.push({ type: "low", text: "The opportunity is real but not fully proven. Increase confidence or narrow scope before committing." });
+  } else if (finalNum >= 2.5) {
+    assessments.push({ type: "warn", text: "Not strong enough to move forward. Continue shaping — needs stronger evidence before intake." });
+  } else {
+    assessments.push({ type: "warn", text: "Route to Shaping & Refinement funnel. Not ready for prioritization." });
+  }
+
+  document.getElementById("score-assessment").innerHTML = assessments.map(a => `
+    <div class="assess-item assess-${a.type}">
+      <div class="assess-icon">${a.type === 'high' ? '✓' : a.type === 'warn' ? '✗' : '→'}</div>
+      <span>${a.text}</span>
+    </div>`).join("");
+
+  document.getElementById("score-improvement").innerHTML = buildImprovementPath(impact, effort, confidence, state.user);
+  renderStakeholders(decision, finalNum);
+  renderSystemImpact();
+
+  // Store latest scoring in state for save-on-demand
+  state._lastScore = { finalScore: finalDisplay, tier, problemQuality, routing };
+}
+
+// === PRIORITY CLASSIFICATION ENGINE ===
+function classifyPriorityTier(org, timeline, progress, readiness) {
+  let tier = "LOW";
+
+  // Leadership is strongest driver
+  if (org.leadership === "a") tier = "HIGHEST";
+  else if (org.leadership === "b") tier = "HIGH";
+  else if (org.leadership === "c") tier = "MEDIUM";
+
+  // Timeline boost
+  if (timeline === "carryover" && tier !== "HIGHEST") tier = "HIGH";
+
+  // Progress boost
+  if ((progress === "in-progress" || progress === "dev-ready") && tier === "MEDIUM") tier = "HIGH";
+
+  // Readiness penalty
+  if (readiness === "mostly-missing" || readiness === "placeholder") tier = "LOW";
+
+  return tier;
+}
+
+function assessProblemQuality() {
+  let score = 0;
+  if ((state.what || "").length > 20) score += 1;
+  if ((state.frequency || "").length > 3) score += 1;
+  if ((state.impactDetail || "").length > 5) score += 1;
+  if ((state.who || state.user || "").length > 5 && !isVague(state.who || state.user || "")) score += 1;
+  if ((state.when || "").length > 5) score += 1;
+
+  if (score >= 4) return "HIGH";
+  if (score >= 2) return "MEDIUM";
+  return "LOW";
+}
+
+function getRoutingDecision(problemQuality) {
+  if (problemQuality === "LOW") return "➡️ Shaping & Refinement (Funnel) — Not ready for prioritization. Needs more evidence.";
+  if (problemQuality === "MEDIUM") return "➡️ Continue shaping — strengthen evidence before submitting for intake.";
+  return "✅ Ready for Intake & Prioritization — problem is well-defined and evidenced.";
+}
+
+function explainPriorityTier(org, tier) {
+  const reasons = [];
+  if (org.leadership === "a") reasons.push("Group A alignment");
+  else if (org.leadership === "b") reasons.push("Group B alignment");
+  else if (org.leadership === "c") reasons.push("Group C alignment");
+  if (org.timeline === "carryover") reasons.push("Carryover boosts priority");
+  if (org.readiness === "ready") reasons.push("Development ready");
+  else if (org.readiness === "partial") reasons.push("Partial readiness");
+  else if (org.readiness === "mostly-missing" || org.readiness === "placeholder") reasons.push("Low readiness limits advancement");
+  if (org.progress === "in-progress") reasons.push("Work already in progress");
+  if (org.worktype === "mandate") reasons.push("Mandate work type");
+  return reasons.length > 0 ? reasons.join(" • ") : "Default classification";
+}
+function renderStakeholders(level, score) {
+  const el = document.getElementById("stakeholder-output");
+  const user = state.who || state.user || "target users";
+
+  if (level === "blocked" || level === "low") {
+    el.innerHTML = `
+      <div style="background:#fee2e2; border-radius:6px; padding:1rem; font-size:0.825rem; line-height:1.6;">
+        <div style="font-weight:700; color:var(--red); margin-bottom:0.5rem;">Mode: SOLO DISCOVERY</div>
+        <div><strong>Primary Owner:</strong> You (individual contributor)</div>
+        <div><strong>Talk to:</strong> 3–5 ${user.toLowerCase()} only</div>
+        <div><strong>Exclude:</strong> Leadership, cross-functional teams</div>
+        <div style="margin-top:0.75rem; padding-top:0.5rem; border-top:1px solid #fecaca; color:var(--red); font-weight:600;">
+          ⛔ Do not escalate. Focus on validating the problem exists.
+        </div>
+      </div>`;
+  } else if (level === "mid") {
+    el.innerHTML = `
+      <div style="background:#fef3c7; border-radius:6px; padding:1rem; font-size:0.825rem; line-height:1.6;">
+        <div style="font-weight:700; color:var(--yellow); margin-bottom:0.5rem;">Mode: VALIDATION + LOCAL ALIGNMENT</div>
+        <div><strong>Primary Owner:</strong> Functional team</div>
+        <div><strong>Core group:</strong></div>
+        <ul style="padding-left:1rem; margin:0.3rem 0;">
+          <li>3–5 ${user.toLowerCase()} (frontline)</li>
+          <li>1 supervisor / team lead</li>
+          <li>Optional: 1 adjacent team for context</li>
+        </ul>
+        <div style="margin-top:0.75rem; padding-top:0.5rem; border-top:1px solid #fde68a; color:#92400e; font-weight:600;">
+          → You're close. Validate with users and align locally before scaling.
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div style="background:#dcfce7; border-radius:6px; padding:1rem; font-size:0.825rem; line-height:1.6;">
+        <div style="font-weight:700; color:var(--green); margin-bottom:0.5rem;">Mode: EXECUTION + ALIGNMENT</div>
+        <div><strong>Primary Owner:</strong> Owning organization</div>
+        <div><strong>Core teams:</strong> 2–4 relevant teams</div>
+        <div><strong>Include:</strong></div>
+        <ul style="padding-left:1rem; margin:0.3rem 0;">
+          <li>Leadership sponsor</li>
+          <li>Cross-functional partners</li>
+          <li>Subject matter experts</li>
+          <li>${user} representatives</li>
+        </ul>
+        <div style="margin-top:0.75rem; padding-top:0.5rem; border-top:1px solid #bbf7d0; color:#166534; font-weight:600;">
+          ✅ This is strong enough. Align stakeholders and begin execution.
+        </div>
+      </div>`;
+  }
+}
+
+function getImpactDiag(v) {
+  if (v <= 2) return "Too low. Not a real or big enough problem.";
+  if (v === 3) return "Moderate. Affects a defined group but isn't transformative.";
+  if (v === 4) return "Significant. Clear value for a strategic segment.";
+  return "Critical. Directly impacts core outcomes at scale.";
+}
+function getEffortDiag(v) {
+  if (v <= 2) return "Low. Quick to validate or ship.";
+  if (v === 3) return "Moderate. Needs coordination but manageable.";
+  if (v === 4) return "Heavy. Multi-week, multi-person.";
+  return "Massive. Multi-team, multi-quarter.";
+}
+function getConfidenceDiag(v) {
+  if (v <= 2) return "No real evidence. Operating on assumption.";
+  if (v === 3) return "Some signals exist but not directly validated.";
+  if (v === 4) return "Strong signal from research or data.";
+  return "Proven through testing or prior validation.";
+}
+
+function buildImprovementPath(impact, effort, confidence, user) {
+  const actions = [];
+  const effectiveWhat = state.what || state.title || "this problem";
+  const effectiveUser = state.who || user || "target users";
+
+  if (confidence <= 3) actions.push(`<strong>Increase confidence:</strong> Talk to 5 ${effectiveUser.toLowerCase()} this week about ${effectiveWhat.toLowerCase().replace(/\.$/, '')}.`);
+  if (impact <= 3) actions.push(`<strong>Sharpen impact:</strong> Quantify how often this happens and what it costs.`);
+  if (effort >= 4) actions.push(`<strong>Reduce scope:</strong> What's the smallest version that tests the core assumption?`);
+  if (isVagueUser(user)) actions.push(`<strong>Define user:</strong> Replace "${user || 'unspecified'}" with a specific role or team.`);
+  if (actions.length === 0) actions.push(`<strong>Maintain momentum:</strong> Fundamentals are solid. Move to execution.`);
+
+  return `
+    <div style="background:var(--delta-blue-light); border:1px solid rgba(0,58,112,0.12); border-radius:6px; padding:0.85rem; font-size:0.8rem; line-height:1.7;">
+      <div style="font-weight:700; color:var(--delta-blue); margin-bottom:0.4rem;">🎯 How to improve:</div>
+      <ul style="margin:0; padding-left:1rem;">${actions.map(a => `<li style="margin-bottom:0.3rem;">${a}</li>`).join("")}</ul>
+    </div>`;
+}
+
+// ========== DASHBOARD & DATA PERSISTENCE ==========
+function getSavedIdeas() {
+  return JSON.parse(localStorage.getItem("delta_shaped_ideas") || "[]");
+}
+
+function saveCurrentIdea(finalScore, tier, problemQuality, routing) {
+  const ideas = getSavedIdeas();
+
+  // DEDUPLICATION: check if this idea already exists (by title match)
+  const existingIndex = ideas.findIndex(i => i.title === state.title && state.title);
+
+  const idea = {
+    id: existingIndex >= 0 ? ideas[existingIndex].id : Date.now().toString(36),
+    title: state.title,
+    user: state.who || state.user,
+    problem: state.what,
+    stage: state.stage,
+    priority: tier,
+    problemQuality: problemQuality,
+    finalScore: finalScore,
+    routing: routing,
+    pipelineStage: problemQuality === "HIGH" ? "Ready" : problemQuality === "MEDIUM" ? "Shaping" : "Funnel",
+    timestamp: new Date().toISOString(),
+    versions: (existingIndex >= 0 ? (ideas[existingIndex].versions || 0) : 0) + 1
+  };
+
+  if (existingIndex >= 0) {
+    ideas[existingIndex] = idea; // Update existing
+  } else {
+    ideas.push(idea); // New entry
+  }
+
+  localStorage.setItem("delta_shaped_ideas", JSON.stringify(ideas));
+}
+
+function showView(view) {
+  const main = document.querySelector("main");
+  const dash = document.getElementById("dashboard-view");
+  const navS = document.getElementById("nav-shaping");
+  const navD = document.getElementById("nav-dashboard");
+
+  if (view === "dashboard") {
+    main.style.display = "none";
+    dash.style.display = "block";
+    navS.style.background = "none";
+    navS.style.border = "1px solid rgba(255,255,255,0.3)";
+    navS.style.color = "rgba(255,255,255,0.8)";
+    navD.style.background = "rgba(255,255,255,0.15)";
+    navD.style.border = "none";
+    navD.style.color = "white";
+    renderDashboard();
+  } else {
+    main.style.display = "block";
+    dash.style.display = "none";
+    navD.style.background = "none";
+    navD.style.border = "1px solid rgba(255,255,255,0.3)";
+    navD.style.color = "rgba(255,255,255,0.8)";
+    navS.style.background = "rgba(255,255,255,0.15)";
+    navS.style.border = "none";
+    navS.style.color = "white";
+  }
+}
+
+function renderDashboard() {
+  const ideas = getSavedIdeas();
+
+  // Pipeline counts
+  const pipeline = { Funnel: 0, Shaping: 0, Ready: 0, "In Progress": 0 };
+  ideas.forEach(i => { pipeline[i.pipelineStage] = (pipeline[i.pipelineStage] || 0) + 1; });
+
+  // Priority counts
+  const priority = { HIGHEST: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+  ideas.forEach(i => { priority[i.priority] = (priority[i.priority] || 0) + 1; });
+
+  // Quality counts
+  const quality = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  ideas.forEach(i => { quality[i.problemQuality] = (quality[i.problemQuality] || 0) + 1; });
+
+  // Exec summary
+  document.getElementById("dash-summary").innerHTML = [
+    { label: "Total Ideas", value: ideas.length, color: "var(--delta-blue)" },
+    { label: "Ready for Intake", value: pipeline.Ready, color: "var(--green)" },
+    { label: "High Priority", value: priority.HIGHEST + priority.HIGH, color: "var(--delta-red)" },
+    { label: "Stuck in Shaping", value: pipeline.Shaping, color: "var(--yellow)" }
+  ].map(s => `
+    <div style="background:white; border-left:4px solid ${s.color}; border-radius:0 6px 6px 0; padding:0.85rem; box-shadow:var(--shadow);">
+      <div style="font-size:1.5rem; font-weight:800; color:${s.color};">${s.value}</div>
+      <div style="font-size:0.65rem; text-transform:uppercase; color:var(--delta-gray-500); font-weight:600; margin-top:0.2rem;">${s.label}</div>
+    </div>
+  `).join("");
+
+  // Pipeline
+  const pipelineStages = ["Funnel", "Shaping", "Ready", "In Progress"];
+  const maxP = Math.max(...Object.values(pipeline), 1);
+  document.getElementById("dash-pipeline").innerHTML = pipelineStages.map(s => `
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.6rem;">
+      <div style="width:80px; font-size:0.75rem; font-weight:600; color:var(--delta-blue);">${s}</div>
+      <div style="flex:1; height:20px; background:var(--delta-gray-100); border-radius:4px; overflow:hidden;">
+        <div style="height:100%; width:${(pipeline[s] / maxP) * 100}%; background:var(--delta-red); border-radius:4px; transition:width 0.3s;"></div>
+      </div>
+      <div style="width:24px; font-size:0.8rem; font-weight:700; color:var(--delta-blue); text-align:right;">${pipeline[s]}</div>
+    </div>
+  `).join("");
+
+  // Priority distribution
+  const prioColors = { HIGHEST: "var(--green)", HIGH: "#16a34a", MEDIUM: "var(--yellow)", LOW: "var(--red)" };
+  document.getElementById("dash-priority").innerHTML = ["HIGHEST", "HIGH", "MEDIUM", "LOW"].map(p => `
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+      <div style="width:8px; height:8px; border-radius:50%; background:${prioColors[p]};"></div>
+      <div style="width:70px; font-size:0.75rem; font-weight:600;">${p}</div>
+      <div style="font-size:0.85rem; font-weight:700; color:var(--delta-blue);">${priority[p]}</div>
+    </div>
+  `).join("");
+
+  // Quality
+  document.getElementById("dash-quality").innerHTML = ["HIGH", "MEDIUM", "LOW"].map(q => `
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+      <div style="width:8px; height:8px; border-radius:50%; background:${q === 'HIGH' ? 'var(--green)' : q === 'MEDIUM' ? 'var(--yellow)' : 'var(--red)'};"></div>
+      <div style="width:70px; font-size:0.75rem; font-weight:600;">${q}</div>
+      <div style="font-size:0.85rem; font-weight:700; color:var(--delta-blue);">${quality[q]}</div>
+    </div>
+  `).join("");
+
+  // Insights
+  const insights = [];
+  if (quality.LOW > quality.HIGH) insights.push("Most ideas lack strong problem definition — focus on improving input quality.");
+  if (pipeline.Shaping > pipeline.Ready) insights.push("High volume stuck in shaping — potential bottleneck in validation.");
+  if (priority.HIGHEST + priority.HIGH < 3 && ideas.length > 5) insights.push("Limited high-priority opportunities — pipeline may lack strong impact ideas.");
+  if (ideas.length === 0) insights.push("No ideas shaped yet. Complete the shaping flow to populate the dashboard.");
+  if (ideas.length > 0 && quality.HIGH > 0) insights.push(`${quality.HIGH} idea${quality.HIGH > 1 ? 's' : ''} ready for intake — move to prioritization.`);
+  document.getElementById("dash-insights").innerHTML = insights.length > 0
+    ? `<ul style="font-size:0.825rem; line-height:1.7; padding-left:1rem;">${insights.map(i => `<li style="margin-bottom:0.4rem;">${i}</li>`).join("")}</ul>`
+    : `<p style="font-size:0.8rem; color:var(--delta-gray-500);">Insights will appear as more ideas are shaped.</p>`;
+
+  // Top ideas
+  const topIdeas = ideas.filter(i => (i.priority === "HIGH" || i.priority === "HIGHEST") && i.problemQuality === "HIGH").slice(0, 3);
+  document.getElementById("dash-top").innerHTML = topIdeas.length > 0
+    ? topIdeas.map(i => `
+      <div style="border-bottom:1px solid var(--delta-gray-100); padding:0.6rem 0; font-size:0.825rem;">
+        <div style="font-weight:700; color:var(--delta-blue);">${i.title}</div>
+        <div style="color:var(--delta-gray-500); font-size:0.75rem; margin-top:0.15rem;">${i.problem || "—"}</div>
+      </div>`).join("")
+    : `<p style="font-size:0.8rem; color:var(--delta-gray-500);">No high-priority, well-defined ideas yet.</p>`;
+
+  // Weak ideas
+  const weakIdeas = ideas.filter(i => i.problemQuality === "LOW").slice(0, 5);
+  document.getElementById("dash-weak").innerHTML = weakIdeas.length > 0
+    ? weakIdeas.map(i => `
+      <div style="border-bottom:1px solid var(--delta-gray-100); padding:0.6rem 0; font-size:0.825rem;">
+        <div style="font-weight:700; color:var(--delta-blue);">${i.title}</div>
+        <div style="color:var(--red); font-size:0.7rem; margin-top:0.15rem;">Low problem clarity — needs refinement</div>
+      </div>`).join("")
+    : `<p style="font-size:0.8rem; color:var(--delta-gray-500);">No weak-signal ideas detected.</p>`;
+
+  // All ideas table
+  document.getElementById("dash-table").innerHTML = ideas.length > 0
+    ? `<div style="overflow-x:auto;"><table style="width:100%; font-size:0.75rem; border-collapse:collapse;">
+      <thead><tr style="border-bottom:2px solid var(--delta-gray-200); text-align:left;">
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Title</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Stage</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Priority</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Quality</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Score</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Pipeline</th>
+        <th style="padding:0.5rem 0.4rem; color:var(--delta-blue);">Action</th>
+      </tr></thead>
+      <tbody>${ideas.map(i => `<tr style="border-bottom:1px solid var(--delta-gray-100);">
+        <td style="padding:0.4rem; font-weight:600;">${i.title}</td>
+        <td style="padding:0.4rem;">${i.stage}</td>
+        <td style="padding:0.4rem;"><span style="font-weight:700; color:${i.priority === 'HIGHEST' || i.priority === 'HIGH' ? 'var(--green)' : i.priority === 'MEDIUM' ? 'var(--yellow)' : 'var(--red)'};">${i.priority}</span></td>
+        <td style="padding:0.4rem;">${i.problemQuality}</td>
+        <td style="padding:0.4rem; font-weight:700;">${i.finalScore}</td>
+        <td style="padding:0.4rem;">${i.pipelineStage}</td>
+        <td style="padding:0.4rem;"><button onclick="loadIdeaForRefinement('${i.id}')" style="background:var(--delta-blue-light); border:1px solid rgba(0,58,112,0.15); color:var(--delta-blue); border-radius:4px; padding:0.2rem 0.5rem; font-size:0.65rem; font-weight:600; cursor:pointer;">Refine</button></td>
+      </tr>`).join("")}</tbody></table></div>`
+    : `<p style="font-size:0.8rem; color:var(--delta-gray-500);">No ideas yet. Complete the shaping flow to add ideas here.</p>`;
+}
+
+function clearAllIdeas() {
+  if (confirm("Clear all saved ideas? This cannot be undone.")) {
+    localStorage.removeItem("delta_shaped_ideas");
+    renderDashboard();
+  }
+}
+
+// ========== PHASE 1: SEMANTIC METHOD MATCHING ==========
+function matchBestMethod(methods, problemText) {
+  if (!problemText || problemText.trim().length < 5) return methods[0];
+
+  const scored = methods.map(method => {
+    let score = 0;
+    const haystack = `${method.name} ${method.why} ${method.when} ${method.story}`.toLowerCase();
+
+    // Word overlap (words > 4 chars)
+    const words = problemText.split(/\s+/).filter(w => w.length > 4);
+    words.forEach(word => {
+      if (haystack.includes(word)) score += 1;
+    });
+
+    // Bonus: strong keyword matches
+    const bonuses = [
+      { keywords: ["observe", "watch", "shadow", "see", "witness"], method: "observation" },
+      { keywords: ["interview", "talk", "ask", "speak", "conversation"], method: "interview" },
+      { keywords: ["test", "validate", "measure", "experiment", "try"], method: "test" },
+      { keywords: ["prototype", "build", "mock", "demo", "sketch"], method: "prototyp" },
+      { keywords: ["assume", "risk", "unknown", "uncertain", "guess"], method: "assumption" },
+      { keywords: ["cluster", "pattern", "theme", "group", "sort"], method: "affinity" },
+      { keywords: ["problem", "define", "frame", "statement", "articulate"], method: "problem" },
+      { keywords: ["empathy", "feel", "think", "emotion", "user"], method: "empathy" },
+      { keywords: ["wire", "layout", "screen", "ui", "interface"], method: "wire" },
+      { keywords: ["story", "flow", "sequence", "step", "journey"], method: "story" }
+    ];
+
+    bonuses.forEach(b => {
+      const hasKeyword = b.keywords.some(k => problemText.includes(k));
+      const methodMatches = method.name.toLowerCase().includes(b.method);
+      if (hasKeyword && methodMatches) score += 5;
+    });
+
+    return { ...method, matchScore: score };
+  });
+
+  scored.sort((a, b) => b.matchScore - a.matchScore);
+  return scored[0];
+}
+
+// ========== PHASE 1: CLIPBOARD EXPORT ==========
+function copyOutputToClipboard() {
+  const outputEl = document.getElementById("shaping-output");
+  if (!outputEl) return;
+
+  // Build clean text from output sections
+  const sections = outputEl.querySelectorAll(".output-section");
+  let text = "--- SHAPING OUTPUT ---\n\n";
+  sections.forEach(section => {
+    const label = section.querySelector(".output-label")?.textContent || "";
+    const value = section.querySelector(".output-value")?.textContent || "";
+    text += `${label}\n${value}\n\n`;
+  });
+
+  // Add scoring info
+  const score = document.getElementById("final-score")?.textContent;
+  const tier = document.getElementById("priority-classification")?.textContent;
+  if (score && score !== "—") {
+    text += `--- SCORING ---\nFinal Score: ${score}\n`;
+  }
+
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    showToast("Copied to clipboard");
+  });
+}
+
+function showToast(msg) {
+  let toast = document.getElementById("app-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "app-toast";
+    toast.style.cssText = "position:fixed; bottom:1.5rem; right:1.5rem; background:var(--delta-blue); color:white; padding:0.75rem 1.25rem; border-radius:6px; font-size:0.8rem; font-weight:500; z-index:200; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.2);";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.display = "block";
+  setTimeout(() => { toast.style.display = "none"; }, 2500);
+}
+
+// ========== PHASE 1: AI COPILOT (GEMINI CLIENT-SIDE) ==========
+const GEMINI_KEY = "AQ.Ab8RN6K8AXPAyRzHrPhWzGHWWi-LlJ_bDG0FXa89ByRgP30tNQ";
+
+async function callGemini(prompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: "You are a fast-thinking product shaping coach at Delta Air Lines. Be concise, direct, and practical. Use bullet points. Challenge weak thinking. No fluff." }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) return "Error: " + (data.error?.message || "API failed");
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+  } catch (err) {
+    return "Failed to reach AI. Check your connection.";
+  }
+}
+
+function showCopilot(content) {
+  const card = document.getElementById("copilot-card");
+  const body = document.getElementById("copilot-content");
+  const loading = document.getElementById("copilot-loading");
+  card.style.display = "block";
+  loading.style.display = "none";
+  body.textContent = content;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function showCopilotLoading() {
+  const card = document.getElementById("copilot-card");
+  const loading = document.getElementById("copilot-loading");
+  const body = document.getElementById("copilot-content");
+  card.style.display = "block";
+  loading.style.display = "block";
+  body.textContent = "";
+}
+
+function buildContextString() {
+  return `Idea: ${state.title || "not provided"}
+Target User: ${state.who || state.user || "not specified"}
+Problem: ${state.what || "not defined"}
+Context: ${state.context || "none provided"}
+When/Where: ${state.when || "not specified"}
+Frequency: ${state.frequency || "unknown"}
+Impact: ${state.impactDetail || "not quantified"}
+Stage: ${state.stage || "unknown"}`;
+}
+
+async function challengeIdea() {
+  showCopilotLoading();
+  const context = buildContextString();
+  const prompt = `Challenge this product idea. Find the 3 weakest assumptions, biggest risks, and most likely failure modes. Be direct and critical — don't soften it.
+
+${context}
+
+Format:
+WEAKEST ASSUMPTIONS:
+1. ...
+2. ...
+3. ...
+
+BIGGEST RISKS:
+1. ...
+2. ...
+
+MOST LIKELY FAILURE MODE:
+...
+
+ONE QUESTION THAT COULD KILL THIS IDEA:
+...`;
+
+  const result = await callGemini(prompt);
+  showCopilot(result);
+}
+
+async function askCopilot(mode) {
+  showCopilotLoading();
+  const context = buildContextString();
+
+  let prompt = "";
+  if (mode === "rewrite") {
+    prompt = `Rewrite this problem statement to be sharper, more specific, and measurable. Return ONLY the improved version (no explanation).
+
+Current problem: ${state.what || state.title || "not defined"}
+User: ${state.who || state.user || "not specified"}
+Context: ${state.context || "none"}
+
+Return format:
+IMPROVED PROBLEM STATEMENT:
+[your rewrite]
+
+WHY THIS IS BETTER:
+[2 bullets]`;
+  } else if (mode === "missing") {
+    prompt = `Based on this shaped idea, what critical information is still missing? What should this team figure out before moving forward?
+
+${context}
+
+Return format:
+MISSING INFORMATION:
+1. ...
+2. ...
+3. ...
+
+RECOMMENDED NEXT ACTION:
+[one specific thing to do this week]`;
+  }
+
+  const result = await callGemini(prompt);
+  showCopilot(result);
+}
+
+// ========== PHASE 2: SYSTEM IMPACT PANEL ==========
+const SYSTEM_MAP = {
+  crew: { system: "Crew Scheduling System", risk: "high", teams: ["OCC", "Crew Planning"] },
+  boarding: { system: "Gate Management / SNAPP", risk: "medium", teams: ["ACS", "Airport Ops"] },
+  gate: { system: "Gate Management / SNAPP", risk: "medium", teams: ["ACS", "Airport Ops"] },
+  delay: { system: "OCC Decision Engine", risk: "high", teams: ["OCC", "NOC"] },
+  cancel: { system: "OCC Decision Engine", risk: "high", teams: ["OCC", "NOC"] },
+  notification: { system: "Messaging Platform", risk: "low", teams: ["Digital", "ES"] },
+  alert: { system: "Messaging Platform", risk: "low", teams: ["Digital", "ES"] },
+  booking: { system: "Reservation System (SkySpeed)", risk: "high", teams: ["Revenue Mgmt", "Digital"] },
+  reservation: { system: "Reservation System (SkySpeed)", risk: "high", teams: ["Revenue Mgmt", "Digital"] },
+  baggage: { system: "Bag Tracking (BRS)", risk: "medium", teams: ["Ramp", "ACS"] },
+  bag: { system: "Bag Tracking (BRS)", risk: "medium", teams: ["Ramp", "ACS"] },
+  app: { system: "Fly Delta App", risk: "medium", teams: ["Digital Experience"] },
+  digital: { system: "Digital Platforms", risk: "medium", teams: ["Digital Experience", "ES"] },
+  loyalty: { system: "SkyMiles Platform", risk: "medium", teams: ["Loyalty", "Digital"] },
+  skymiles: { system: "SkyMiles Platform", risk: "medium", teams: ["Loyalty", "Digital"] },
+  maintenance: { system: "TechOps / MX Systems", risk: "high", teams: ["TechOps", "OCC"] },
+  aircraft: { system: "Fleet / Aircraft Systems", risk: "high", teams: ["TechOps", "OCC", "Fleet"] },
+  checkin: { system: "Check-in Platform", risk: "medium", teams: ["Digital", "ACS"] },
+  "check-in": { system: "Check-in Platform", risk: "medium", teams: ["Digital", "ACS"] },
+  schedule: { system: "Scheduling Systems", risk: "high", teams: ["Network Planning", "OCC"] },
+  flight: { system: "Flight Operations", risk: "high", teams: ["Flight Ops", "OCC"] },
+  agent: { system: "Agent Tooling (SNAPP/Nomad)", risk: "medium", teams: ["ACS", "IT"] },
+  customer: { system: "Customer Experience Platforms", risk: "medium", teams: ["CX", "Digital"] },
+  passenger: { system: "Customer Experience Platforms", risk: "medium", teams: ["CX", "Digital"] },
+  training: { system: "Learning & Development", risk: "low", teams: ["L&D", "HR"] },
+  simulator: { system: "Training Simulators", risk: "high", teams: ["Flight Ops", "TechOps"] }
+};
+
+function renderSystemImpact() {
+  const allText = `${state.title} ${state.what} ${state.who} ${state.context} ${state.when} ${state.impactDetail}`.toLowerCase();
+  const el = document.getElementById("system-impact-output");
+
+  const impacts = [];
+  const seenSystems = new Set();
+
+  Object.entries(SYSTEM_MAP).forEach(([keyword, info]) => {
+    if (allText.includes(keyword) && !seenSystems.has(info.system)) {
+      seenSystems.add(info.system);
+      impacts.push(info);
+    }
+  });
+
+  if (impacts.length === 0) {
+    el.innerHTML = '<p style="font-size:0.8rem; color:var(--delta-gray-500);">No specific system impacts detected from your inputs. Add more context to see downstream effects.</p>';
+    return;
+  }
+
+  // Sort by risk
+  const riskOrder = { high: 0, medium: 1, low: 2 };
+  impacts.sort((a, b) => riskOrder[a.risk] - riskOrder[b.risk]);
+
+  const riskColors = { high: "var(--red)", medium: "var(--yellow)", low: "var(--green)" };
+  const riskLabels = { high: "🔴 HIGH", medium: "🟡 MEDIUM", low: "🟢 LOW" };
+
+  const allTeams = [...new Set(impacts.flatMap(i => i.teams))];
+
+  el.innerHTML = `
+    ${impacts.map(i => `
+      <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--delta-gray-100);">
+        <span style="font-size:0.7rem; font-weight:700; color:${riskColors[i.risk]}; width:80px;">${riskLabels[i.risk]}</span>
+        <div>
+          <div style="font-size:0.825rem; font-weight:600; color:var(--delta-blue);">${i.system}</div>
+          <div style="font-size:0.7rem; color:var(--delta-gray-500);">Teams: ${i.teams.join(", ")}</div>
+        </div>
+      </div>
+    `).join("")}
+    <div style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px solid var(--delta-gray-200); display:flex; gap:1.5rem; font-size:0.75rem; color:var(--delta-gray-500);">
+      <span><strong>Systems:</strong> ${impacts.length}</span>
+      <span><strong>Teams involved:</strong> ${allTeams.length}</span>
+      <span><strong>High-risk:</strong> ${impacts.filter(i => i.risk === "high").length}</span>
+    </div>
+  `;
+}
+
+// ========== PHASE 2: REFINE IDEA MODE ==========
+function loadIdeaForRefinement(ideaId) {
+  const ideas = getSavedIdeas();
+  const idea = ideas.find(i => i.id === ideaId);
+  if (!idea) return;
+
+  // Load into state
+  state.title = idea.title || "";
+  state.user = idea.user || "";
+  state.what = idea.problem || "";
+  state.stage = idea.stage || "";
+
+  // Populate form fields
+  document.getElementById("idea-title").value = state.title;
+  document.getElementById("idea-context").value = state.context || "";
+  document.getElementById("idea-user").value = state.user;
+
+  // Select stage
+  document.querySelectorAll(".stage-btn").forEach(btn => {
+    btn.classList.remove("selected");
+    if (btn.querySelector(".stage-name")?.textContent.toLowerCase() === state.stage) {
+      btn.classList.add("selected");
+    }
+  });
+
+  // Switch to shaping view and go to step 1
+  showView("shaping");
+  goToStep(1);
+  goSubstep(1);
+  updateIntakeScore();
+  showToast("Idea loaded for refinement");
+}
+
+// ========== FLOATING AI CHAT ==========
+let aiChatOpen = false;
+
+function toggleAIChat() {
+  aiChatOpen = !aiChatOpen;
+  document.getElementById("ai-chat-box").style.display = aiChatOpen ? "flex" : "none";
+  document.getElementById("ai-chat-toggle").style.transform = aiChatOpen ? "scale(0)" : "scale(1)";
+  if (aiChatOpen) {
+    document.getElementById("ai-chat-input").focus();
+  }
+}
+
+async function sendAIChat() {
+  const input = document.getElementById("ai-chat-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  const messages = document.getElementById("ai-chat-messages");
+
+  // Add user message
+  messages.innerHTML += `<div style="background:var(--delta-gray-50); border-radius:8px; padding:0.6rem 0.75rem; margin-bottom:0.5rem; text-align:right; color:#1a2a3a;">${msg}</div>`;
+  input.value = "";
+
+  // Add loading
+  messages.innerHTML += `<div id="chat-loading" style="color:var(--delta-gray-500); font-size:0.75rem; padding:0.5rem;">Thinking...</div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  // Build context from current state
+  const context = buildContextString();
+  const prompt = `You are a fast-thinking shaping coach at Delta Air Lines. The user is working on this idea:
+
+${context}
+
+The user asks: "${msg}"
+
+Respond concisely. Use bullets where helpful. Be direct and practical. If they need to do something, tell them exactly what. If their thinking is weak, say so.`;
+
+  const result = await callGemini(prompt);
+
+  // Remove loading, add response
+  const loadEl = document.getElementById("chat-loading");
+  if (loadEl) loadEl.remove();
+
+  messages.innerHTML += `<div style="background:var(--delta-blue-light); border-radius:8px; padding:0.75rem; margin-bottom:0.5rem; color:var(--delta-blue); white-space:pre-wrap;">${result}</div>`;
+  messages.scrollTop = messages.scrollHeight;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+Dimension,Score,Label,Description,Guardrail
+Impact,1,Negligible,"No measurable change. Cosmetic or nice-to-have only.",BLOCKED — NOT READY
+Impact,2,Minor,"Slight improvement for a small group. Won't move any KPI.",BLOCKED — NOT READY
+Impact,3,Moderate,"Noticeable improvement for a defined segment. Moves a secondary metric.",—
+Impact,4,Significant,"Clear value for a strategic user group. Moves a primary KPI.",—
+Impact,5,Critical,"Transformative. Directly impacts revenue, retention, or core efficiency at scale.",—
+Effort,1,Trivial,"Less than 1 day. Config change or minor tweak.",—
+Effort,2,Light,"1–3 days. Small feature, one developer.",—
+Effort,3,Moderate,"1–2 weeks. Design + engineering, some coordination.",—
+Effort,4,Heavy,"2–6 weeks. Multi-person, dependencies, QA cycles.",—
+Effort,5,Massive,"6+ weeks or multi-quarter. Multiple teams, high risk.",—
+Confidence,1,Guessing,"No data, no user input, pure assumption.",BLOCKED — NOT READY
+Confidence,2,Hunch,"Anecdotal evidence. One conversation or personal observation.",BLOCKED — NOT READY
+Confidence,3,Some Data,"Multiple user signals, tickets, or analytics suggest the problem exists.",—
+Confidence,4,Strong Signal,"User research, A/B results, or clear quantitative evidence.",—
+Confidence,5,Proven,"Validated through experiment, pilot, or competitor proof.",—
+
+Formula,,,"Score = (Impact² × Confidence²) ÷ Effort² × Clarity Modifier",
+Clarity Modifier,,,High (4-5 answers filled with detail) = ×1.1,
+Clarity Modifier,,,Medium (2-3 answers filled) = ×1.0,
+Clarity Modifier,,,Low (0-1 answers filled) = ×0.8,
+
+Tier,4.5–5.0,,✅ STRONG — Move forward,"Validated high-impact problem. Proceed to defining solutions."
+Tier,3.5–4.4,,🟡 PROMISING — Strengthen,"Opportunity is real but not fully proven. Increase confidence or narrow scope."
+Tier,2.5–3.4,,⚠️ NOT READY — Under-validated,"Not strong enough to move forward. Missing evidence, impact, or clarity. Return to discovery."
+Tier,<2.5,,❌ STOP — Weak signal,"Not a meaningful or well-understood problem. Do not move forward. Reframe or gather new data."
+
+Hard Guardrail,,,Impact ≤ 2,BLOCKED. Score not calculated. Return to discovery.
+Hard Guardrail,,,Confidence ≤ 2,BLOCKED. Score not calculated. No evidence exists.
+Soft Guardrail,,,"Vague user target (""all users"")",Score penalized 30%.

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delta Product Shaping Tool</title>
+  <style>
+    :root {
+      --delta-blue: #003a70;
+      --delta-blue-dark: #002855;
+      --delta-blue-light: #e8f0f8;
+      --delta-red: #c8102e;
+      --delta-red-hover: #a30d25;
+      --delta-gray-50: #f7f8fa;
+      --delta-gray-100: #eef1f5;
+      --delta-gray-200: #dce1e8;
+      --delta-gray-500: #6b7a8d;
+      --delta-white: #ffffff;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0, 58, 112, 0.08);
+      --shadow-lg: 0 4px 16px rgba(0, 58, 112, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--delta-gray-50); color: #1a2a3a; min-height: 100vh; }
+
+    /* Header */
+    header { background: var(--delta-blue); padding: 0; box-shadow: var(--shadow-lg); position: sticky; top: 0; z-index: 50; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 2rem; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; }
+    .logo svg { width: 32px; height: 32px; }
+    .logo span { color: var(--delta-white); font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
+    .header-badge { background: rgba(255,255,255,0.15); color: var(--delta-white); font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Nav tabs */
+    .nav-tabs { display: flex; gap: 0; padding: 0 2rem; background: var(--delta-blue-dark); }
+    .nav-tab { color: rgba(255,255,255,0.7); font-size: 0.8125rem; font-weight: 500; padding: 0.65rem 1.25rem; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; text-decoration: none; }
+    .nav-tab:hover { color: var(--delta-white); background: rgba(255,255,255,0.05); }
+    .nav-tab.active { color: var(--delta-white); border-bottom-color: var(--delta-red); }
+
+    /* Pages */
+    .page { display: none; padding: 2rem; max-width: 780px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* Delta Widget Cards */
+    .widget { background: var(--delta-white); border: 1px solid var(--delta-gray-200); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.5rem; overflow: hidden; }
+    .widget-header { background: var(--delta-blue); padding: 0.75rem 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+    .widget-header h2 { color: var(--delta-white); font-size: 0.875rem; font-weight: 600; letter-spacing: 0.01em; }
+    .widget-header .widget-action { color: rgba(255,255,255,0.8); font-size: 0.75rem; cursor: pointer; }
+    .widget-header .widget-action:hover { color: var(--delta-white); }
+    .widget-body { padding: 1.5rem; }
+
+    /* Alternate widget style - light header */
+    .widget-light .widget-header { background: var(--delta-gray-100); border-bottom: 1px solid var(--delta-gray-200); }
+    .widget-light .widget-header h2 { color: var(--delta-blue); }
+
+    /* Form */
+    textarea { width: 100%; border: 1.5px solid var(--delta-gray-200); border-radius: 6px; padding: 0.85rem; font-size: 0.875rem; resize: none; font-family: inherit; outline: none; transition: border-color 0.2s; }
+    textarea:focus { border-color: var(--delta-blue); box-shadow: 0 0 0 3px rgba(0,58,112,0.08); }
+    input[type="text"], input[type="password"], select { width: 100%; border: 1.5px solid var(--delta-gray-200); border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.875rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus { border-color: var(--delta-blue); box-shadow: 0 0 0 3px rgba(0,58,112,0.08); }
+    label { display: block; font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.375rem; color: var(--delta-blue); }
+
+    /* Buttons */
+    .btn { border: none; padding: 0.6rem 1.25rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-red { background: var(--delta-red); color: var(--delta-white); }
+    .btn-red:hover { background: var(--delta-red-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(200,16,46,0.3); }
+    .btn-red:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-blue { background: var(--delta-blue); color: var(--delta-white); }
+    .btn-blue:hover { background: var(--delta-blue-dark); }
+    .btn-outline { background: var(--delta-white); color: var(--delta-blue); border: 1.5px solid var(--delta-gray-200); }
+    .btn-outline:hover { border-color: var(--delta-blue); background: var(--delta-blue-light); }
+
+    /* Sample chips */
+    .sample-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .chip { background: var(--delta-blue-light); color: var(--delta-blue); border: 1px solid rgba(0,58,112,0.15); padding: 0.4rem 0.85rem; border-radius: 20px; font-size: 0.75rem; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .chip:hover { background: var(--delta-blue); color: var(--delta-white); }
+
+    /* Output */
+    .output { white-space: pre-wrap; font-family: 'SF Mono', 'Consolas', 'Courier New', monospace; font-size: 0.8rem; line-height: 1.7; color: #2a3a4a; padding: 1rem; background: var(--delta-gray-50); border-radius: 6px; border: 1px solid var(--delta-gray-200); }
+
+    /* Provider cards in settings */
+    .provider-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--delta-gray-200); border-radius: var(--radius); margin-bottom: 0.75rem; transition: box-shadow 0.2s; }
+    .provider-row:hover { box-shadow: var(--shadow); }
+    .provider-info { display: flex; align-items: center; gap: 0.85rem; }
+    .provider-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; color: var(--delta-white); }
+    .provider-name { font-weight: 600; font-size: 0.875rem; color: var(--delta-blue); }
+    .provider-detail { font-size: 0.75rem; color: var(--delta-gray-500); margin-top: 0.125rem; }
+    .badge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge-active { background: #dcfce7; color: #166534; }
+    .badge-inactive { background: var(--delta-gray-100); color: var(--delta-gray-500); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-active .badge-dot { background: #16a34a; }
+    .badge-inactive .badge-dot { background: var(--delta-gray-500); }
+
+    /* Settings rows */
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid var(--delta-gray-100); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 0.8125rem; font-weight: 500; color: #2a3a4a; }
+    .setting-value { font-size: 0.8125rem; color: var(--delta-gray-500); font-weight: 500; }
+
+    /* Divider with red accent */
+    .red-accent { height: 3px; background: linear-gradient(90deg, var(--delta-red), var(--delta-red) 30%, transparent); margin-bottom: 1.5rem; border-radius: 2px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--delta-blue); color: var(--delta-white); padding: 0.75rem 1.25rem; border-radius: 6px; font-size: 0.8125rem; font-weight: 500; display: none; z-index: 100; box-shadow: var(--shadow-lg); }
+    .toast.show { display: block; animation: slideUp 0.25s; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Footer */
+    .footer { text-align: center; padding: 2rem; font-size: 0.7rem; color: var(--delta-gray-500); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-top">
+      <div class="logo">
+        <!-- Delta triangle -->
+        <svg viewBox="0 0 32 32" fill="none">
+          <polygon points="16,2 30,28 2,28" fill="#C8102E"/>
+          <polygon points="16,10 24,28 8,28" fill="#003a70" opacity="0.3"/>
+        </svg>
+        <span>Product Shaping Tool</span>
+      </div>
+      <span class="header-badge">Internal Tool</span>
+    </div>
+    <div class="nav-tabs">
+      <a class="nav-tab active" onclick="showPage('shaping', this)">Shaping</a>
+      <a class="nav-tab" onclick="showPage('settings', this)">Settings</a>
+    </div>
+  </header>
+
+  <!-- SHAPING PAGE -->
+  <div class="page active" id="page-shaping">
+    <div class="red-accent"></div>
+
+    <div class="widget">
+      <div class="widget-header">
+        <h2>✈ Shape an Idea</h2>
+        <span class="widget-action">Gemini 2.0 Flash</span>
+      </div>
+      <div class="widget-body">
+        <p style="font-size:0.8125rem; color:var(--delta-gray-500); margin-bottom:0.85rem;">Select a sample or describe your own product idea:</p>
+        <div class="sample-chips">
+          <span class="chip" onclick="loadSample(0)">AI Onboarding Tool</span>
+          <span class="chip" onclick="loadSample(1)">Internal Feedback Widget</span>
+          <span class="chip" onclick="loadSample(2)">Auto Status Updates</span>
+        </div>
+        <textarea id="idea" rows="5" placeholder="Describe your rough product idea..."></textarea>
+        <div style="margin-top:1rem; display:flex; gap:0.75rem;">
+          <button class="btn btn-red" id="shape-btn" onclick="shapeIdea()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l2 4.5h5l-4 3 1.5 5L8 11.5 3.5 14 5 9 1 6h5z"/></svg>
+            Shape Idea
+          </button>
+          <button class="btn btn-outline" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget" id="result-card" style="display:none;">
+      <div class="widget-header">
+        <h2>Structured Output</h2>
+        <span class="widget-action" onclick="copyOutput()" style="cursor:pointer;">📋 Copy</span>
+      </div>
+      <div class="widget-body">
+        <div class="output" id="output"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="red-accent"></div>
+
+    <div class="widget">
+      <div class="widget-header">
+        <h2>Connected Providers</h2>
+        <span class="widget-action">Manage API Keys</span>
+      </div>
+      <div class="widget-body">
+        <p style="font-size:0.8125rem; color:var(--delta-gray-500); margin-bottom:1.25rem;">API keys are stored locally in your browser. Never shared externally.</p>
+
+        <div class="provider-row">
+          <div class="provider-info">
+            <div class="provider-icon" style="background:#4285f4;">G</div>
+            <div>
+              <div class="provider-name">Google Gemini</div>
+              <div class="provider-detail">gemini-2.0-flash · Free tier</div>
+            </div>
+          </div>
+          <span class="badge badge-active"><span class="badge-dot"></span>Active</span>
+        </div>
+
+        <div class="provider-row">
+          <div class="provider-info">
+            <div class="provider-icon" style="background:#f55036;">Q</div>
+            <div>
+              <div class="provider-name">Groq</div>
+              <div class="provider-detail">llama-3.3-70b · Free tier</div>
+            </div>
+          </div>
+          <span class="badge badge-active"><span class="badge-dot"></span>Connected</span>
+        </div>
+
+        <div class="provider-row" style="opacity:0.55;">
+          <div class="provider-info">
+            <div class="provider-icon" style="background:#10a37f;">O</div>
+            <div>
+              <div class="provider-name">OpenAI</div>
+              <div class="provider-detail">gpt-4o-mini · Not configured</div>
+            </div>
+          </div>
+          <span class="badge badge-inactive"><span class="badge-dot"></span>No Key</span>
+        </div>
+
+        <button class="btn btn-outline" style="width:100%; margin-top:1rem; justify-content:center;">+ Add Provider</button>
+      </div>
+    </div>
+
+    <div class="widget widget-light">
+      <div class="widget-header">
+        <h2>Preferences</h2>
+      </div>
+      <div class="widget-body">
+        <div class="setting-row">
+          <span class="setting-label">Active Provider</span>
+          <span class="setting-value">Google Gemini</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Output Format</span>
+          <span class="setting-value">Structured Bullets</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Temperature</span>
+          <span class="setting-value">0.7 (Balanced)</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Max Tokens</span>
+          <span class="setting-value">1,500</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Auto-Save Outputs</span>
+          <span class="setting-value">Enabled</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">Delta Air Lines — Internal Product Management Tools · Not for external distribution</div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SAMPLES = [
+      "An AI-powered onboarding tool that guides new employees through their first week with personalized tasks, intro meetings, and system access setup — reducing time-to-productivity from 2 weeks to 3 days.",
+      "A lightweight feedback widget that engineering teams can embed in internal tools. Lets users report bugs, suggest improvements, or ask questions without leaving their workflow. Feeds into a prioritized backlog.",
+      "A bot that reads Jira/Linear tickets, Slack threads, and PR activity to auto-generate weekly status updates for managers. No more Monday morning 'what did you do last week' standups."
+    ];
+
+    const OUTPUTS = [
+      `PROBLEM STRUCTURE
+- User: HR teams & new hires at companies with 50-500 employees
+- Problem: Onboarding is fragmented across email chains, wiki pages, and calendar invites. New hires feel lost, managers forget steps, IT access is delayed.
+- Context: Average time-to-productivity is 2+ weeks. Most onboarding is manual, inconsistent across teams, and drops off after day 2.
+- Current alternatives: BambooHR onboarding module, Notion templates, manual checklists, Slack reminders
+- Why existing solutions fall short: Too generic (not role-specific), no adaptive pacing, don't integrate with actual systems (IT provisioning, calendar, Slack groups)
+
+SOLUTION OPTIONS
+
+1. Guided AI Onboarding Agent
+   - Adaptive daily task list with system integrations (SSO provisioning, calendar, Slack)
+   - Strength: High personalization, reduces HR manual work by 80%
+   - Tradeoff: Requires deep integrations with company tools (SSO, HRIS, calendar)
+
+2. Smart Onboarding Template Engine
+   - Role-based templates that auto-populate based on department/seniority, with reminders
+   - Strength: Simple to build, works with existing tools
+   - Tradeoff: Still somewhat manual, no real adaptation based on progress
+
+3. Peer-Matching + AI Assistant Hybrid
+   - Pairs new hires with an AI assistant AND a peer buddy, orchestrates both
+   - Strength: Human warmth + AI efficiency, better culture integration
+   - Tradeoff: Depends on peer availability, harder to scale
+
+RISKS & ASSUMPTIONS
+- Assumption: Companies have standardized enough processes to automate
+- Assumption: New hires will engage with an AI tool in their first week
+- Assumption: IT provisioning can be triggered via API
+- Risk: Security concerns around automated system access
+- Risk: Over-automation makes onboarding feel impersonal
+- Risk: Different teams have wildly different onboarding needs
+- Edge case: Remote vs. in-office hires need different flows
+- Edge case: Contractors/temps with limited system access
+
+SUCCESS METRICS
+- Time-to-first-commit (engineering) or first-deliverable (other roles)
+- New hire satisfaction score at day 7 vs. baseline
+- HR hours spent per onboarding reduced by >60%`,
+
+      `PROBLEM STRUCTURE
+- User: Engineers and internal tool users at mid-size tech companies (50-200 eng)
+- Problem: Internal tools have no structured feedback loop. Bugs get reported in random Slack channels, feature requests are lost, and tool teams have no prioritized backlog of user pain.
+- Context: Internal teams ship tools quickly but rarely iterate because they don't hear from users. Users give up and build workarounds instead.
+- Current alternatives: Slack messages, Jira tickets (manually created), Google Forms, email
+- Why existing solutions fall short: Too much friction (opening Jira), wrong context (Slack loses info), no aggregation or prioritization
+
+SOLUTION OPTIONS
+
+1. Embedded Contextual Widget
+   - Lightweight JS snippet that captures screenshot, URL, user info, and a short note. One-click submit.
+   - Strength: Zero-friction, captures context automatically
+   - Tradeoff: Limited to web-based internal tools, needs per-tool integration
+
+2. Slack-Native Feedback Bot
+   - React with an emoji or /command in Slack to log feedback. Bot auto-categorizes and routes to the right team.
+   - Strength: Meets users where they already are, no new UI
+   - Tradeoff: Loses visual context, Slack threads are noisy
+
+3. Feedback Aggregator Dashboard
+   - Central dashboard that pulls from multiple sources (Slack, widget, email) and uses AI to cluster, dedupe, and prioritize.
+   - Strength: Single source of truth for tool teams
+   - Tradeoff: Complexity of ingestion, needs critical mass of data to be useful
+
+RISKS & ASSUMPTIONS
+- Assumption: Engineers will use a feedback tool if friction is low enough
+- Assumption: Internal tool teams will actually act on the feedback
+- Assumption: Feedback volume is high enough to warrant a dedicated tool
+- Risk: Becomes a dumping ground with no follow-through — users stop trusting it
+- Risk: Privacy concerns if screenshots capture sensitive data
+- Risk: Duplicates existing processes without replacing them
+- Edge case: Tools behind VPN/auth that can't embed external scripts
+- Edge case: Non-engineering users with different mental models
+
+SUCCESS METRICS
+- Feedback submissions per week per tool (target: 5+)
+- % of submissions that result in a shipped fix within 2 weeks
+- Reduction in Slack messages tagged as bugs/requests`,
+
+      `PROBLEM STRUCTURE
+- User: Engineering managers and team leads managing 5-15 direct reports
+- Problem: Writing weekly status updates is tedious, time-consuming, and often inaccurate. Managers spend 30-60 min every Monday compiling what happened across Jira, Slack, and PRs.
+- Context: Status updates are required by leadership but hated by everyone. They're often stale, incomplete, or padded. The real work is already documented — just scattered.
+- Current alternatives: Manual Google Docs, Slack channel summaries, Geekbot standup bots, Range/Friday tools
+- Why existing solutions fall short: Still require manual input from ICs, don't synthesize across tools, produce low-signal bullet lists
+
+SOLUTION OPTIONS
+
+1. Auto-Generated Status Reports (Read-Only Bot)
+   - Pulls from Jira/Linear, GitHub PRs, and Slack to produce a draft summary every Friday. Manager reviews and sends.
+   - Strength: Zero effort for ICs, 90% reduction in manager time, always based on real activity
+   - Tradeoff: May miss context (why something was done), needs good tool coverage
+
+2. AI-Assisted Standup Replacement
+   - Replaces daily standups entirely. Bot posts a digest each morning based on activity, team members can annotate.
+   - Strength: Eliminates meeting overhead, keeps everyone informed async
+   - Tradeoff: Controversial (some teams value face-time), annotation adoption may be low
+
+3. Leadership-Facing Dashboard
+   - Skip the report format entirely. Give leadership a live dashboard of team velocity, blockers, and highlights pulled from tools.
+   - Strength: Always current, no batching, no writing
+   - Tradeoff: Harder to build, requires trust that metrics ≠ surveillance
+
+RISKS & ASSUMPTIONS
+- Assumption: Activity in Jira/GitHub/Slack accurately represents work done
+- Assumption: Managers will trust AI-generated summaries enough to forward them
+- Assumption: Teams use tools consistently (tickets updated, PRs linked)
+- Risk: Perceived as surveillance — ICs may resist or game it
+- Risk: Inaccurate summaries erode trust quickly
+- Risk: Doesn't capture untracked work (meetings, mentoring, thinking)
+- Edge case: Teams using tools AI can't access (proprietary systems)
+- Edge case: Weeks with low activity (holidays, on-call) produce misleading reports
+
+SUCCESS METRICS
+- Manager time spent on status updates (target: <5 min vs. 45 min)
+- Accuracy rating from managers (weekly thumbs up/down on generated draft)
+- IC sentiment score (do they feel fairly represented)`
+    ];
+
+    function showPage(page, el) {
+      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+      document.querySelectorAll(".nav-tab").forEach(a => a.classList.remove("active"));
+      document.getElementById("page-" + page).classList.add("active");
+      el.classList.add("active");
+    }
+
+    function loadSample(index) {
+      document.getElementById("idea").value = SAMPLES[index];
+    }
+
+    function clearAll() {
+      document.getElementById("idea").value = "";
+      document.getElementById("result-card").style.display = "none";
+    }
+
+    function shapeIdea() {
+      const idea = document.getElementById("idea").value.trim();
+      if (!idea) return;
+
+      const btn = document.getElementById("shape-btn");
+      const output = document.getElementById("output");
+      const card = document.getElementById("result-card");
+
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="20" stroke-dashoffset="5"><animateTransform attributeName="transform" type="rotate" from="0 8 8" to="360 8 8" dur="0.8s" repeatCount="indefinite"/></circle></svg> Shaping...';
+      card.style.display = "block";
+      output.textContent = "Analyzing your idea...";
+
+      const matchIndex = SAMPLES.findIndex(s => idea.includes(s.substring(0, 30)));
+      const result = matchIndex >= 0 ? OUTPUTS[matchIndex] : OUTPUTS[0];
+
+      setTimeout(() => {
+        output.textContent = result;
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l2 4.5h5l-4 3 1.5 5L8 11.5 3.5 14 5 9 1 6h5z"/></svg> Shape Idea';
+      }, 1800);
+    }
+
+    function copyOutput() {
+      const text = document.getElementById("output").textContent;
+      navigator.clipboard.writeText(text);
+      toast("Copied to clipboard");
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2500);
+    }
+  </script>
+</body>
+</html>
