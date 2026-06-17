@@ -2328,27 +2328,35 @@ function showToast(msg) {
 }
 
 // ========== PHASE 1: AI COPILOT (GEMINI CLIENT-SIDE) ==========
-const GEMINI_KEY = "AQ.Ab8RN6K8AXPAyRzHrPhWzGHWWi-LlJ_bDG0FXa89ByRgP30tNQ";
+const GROQ_KEY = "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";
 
 async function callGemini(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = "https://api.groq.com/openai/v1/chat/completions";
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + GROQ_KEY
+      },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: "You are a fast-thinking product shaping coach at Delta Air Lines. Be concise, direct, and practical. Use bullet points. Challenge weak thinking. No fluff." }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are a fast-thinking product shaping coach at Delta Air Lines. Be concise, direct, and practical. Use bullet points. Challenge weak thinking. No fluff." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1200
       })
     });
     const data = await res.json();
     if (!res.ok) return "Error: " + (data.error?.message || "API failed");
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+    return data.choices?.[0]?.message?.content || "No response.";
   } catch (err) {
     return "Failed to reach AI. Check your connection.";
   }
 }
+
 
 function showCopilot(content) {
   const card = document.getElementById("copilot-card");
