@@ -908,151 +908,160 @@ function shortenText(text, maxLength) {
   return cleaned.substring(0, maxLength).trim() + "...";
 }
 
-// ========== SHAPING OUTPUT GENERATION ==========
+// ========== SHAPING OUTPUT GENERATION (DETERMINISTIC ENGINE) ==========
+
 function generateShapingOutput(state) {
-  const { title, context, user, stage, answers, who, what, when, frequency, impactDetail, followupAnswers } = state;
-  const answersText = (answers || []).join(" ") + " " + (followupAnswers || []).join(" ");
+  var allText = (state.title + " " + state.context + " " + state.what + " " + state.who + " " + state.impactDetail + " " + state.frequency + " " + state.when + " " + (state.answers||[]).join(" ") + " " + (state.followupAnswers||[]).join(" ")).toLowerCase();
 
-  const effectiveUser = who || user || "target users";
-  const effectiveWhat = what || title;
+  var actor = state.who || state.user || "Operational staff";
+  var failedAction = state.what || state.title || "complete their core task efficiently";
+  var rootCause = inferRootCause(allText, state.context);
+  var impactType = inferImpactType(allText, state.impactDetail);
+  var freq = normalizeFrequency(state.frequency);
+  var evidenceLevel = inferEvidenceLevel(allText);
+  var effortLevel = inferEffortLevel(allText);
 
-  return `
-    <div class="output-section">
-      <div class="output-label">✅ Desired Outcome</div>
-      <div class="output-value">${shortenText(buildDesiredOutcome(effectiveUser, effectiveWhat, when, impactDetail), 180)}</div>
-    </div>
-    <div class="output-section">
-      <div class="output-label">🚀 Opportunity</div>
-      <div class="output-value">${shortenText(buildOpportunity(frequency, impactDetail, stage), 250)}</div>
-    </div>
-    <div class="output-section">
-      <div class="output-label">🎯 Core Problem</div>
-      <div class="output-value">${shortenText(buildCoreProblem(effectiveUser, effectiveWhat, when, frequency, impactDetail), 220)}</div>
-    </div>
-    <div class="output-section">
-      <div class="output-label">🧭 Concept Direction</div>
-      <div class="output-value">${shortenText(buildConceptDirection(effectiveUser, effectiveWhat, when, stage), 200)}</div>
-    </div>
-    <div class="output-section">
-      <div class="output-label">⚡ Simplest Starting Point</div>
-      <div class="output-value">${buildSimplestStart(effectiveUser, effectiveWhat, stage)}</div>
-    </div>
-  `;
+  var normalizedProblem = actor + " cannot " + failedAction.toLowerCase().replace(/\.$/, "") + " because " + rootCause + ", causing " + impactType + ".";
+
+  var impactScore = calcImpactScore(allText, impactType);
+  var confidenceScore = calcConfidenceScore(freq);
+  var evidenceMultiplier = calcEvidenceMultiplier(evidenceLevel);
+  var effortScore = calcEffortScore(effortLevel);
+  var clarityMultiplier = calcClarityMultiplier(state);
+
+  var finalScore = parseFloat(((Math.pow(impactScore, 2) * Math.pow(confidenceScore, 2) * evidenceMultiplier * clarityMultiplier) / Math.pow(effortScore, 2)).toFixed(1));
+
+  var decision = "STOP";
+  if (finalScore >= 6) decision = "PRIORITIZE";
+  else if (finalScore >= 3) decision = "HOLD";
+
+  var priority = "INVALID";
+  if (finalScore >= 10) priority = "HIGH";
+  else if (finalScore >= 6) priority = "MEDIUM";
+  else if (finalScore >= 3) priority = "LOW";
+
+  var desiredOutcome = actor + " can " + failedAction.toLowerCase().replace(/\.$/, "").replace(/^cannot |^can't /, "") + " without " + rootCause + ", eliminating " + impactType + ".";
+  var opportunity = "This occurs " + freq + ". Impact: " + impactType + ". Every cycle without resolution compounds the cost.";
+  var validationStep = buildValidationStep(actor, failedAction, freq);
+
+  var decisionColor = decision === "PRIORITIZE" ? "var(--green)" : decision === "HOLD" ? "var(--yellow)" : "var(--red)";
+  var priorityColor = priority === "HIGH" ? "var(--green)" : priority === "MEDIUM" ? "var(--yellow)" : priority === "LOW" ? "#c2410c" : "var(--red)";
+
+  return '<div class="output-section"><div class="output-label">✅ Normalized Problem</div><div class="output-value" style="font-weight:600;">' + normalizedProblem + '</div></div>' +
+    '<div class="output-section"><div class="output-label">✅ Desired Outcome</div><div class="output-value">' + desiredOutcome + '</div></div>' +
+    '<div class="output-section"><div class="output-label">🚀 Opportunity</div><div class="output-value">' + opportunity + '</div></div>' +
+    '<div class="output-section"><div class="output-label">🎯 Core Problem</div><div class="output-value" style="font-weight:600;">' + normalizedProblem + '</div></div>' +
+    '<div class="output-section"><div class="output-label">⚡ Simplest Starting Point</div><div class="output-value"><em style="color:var(--delta-blue);">"' + normalizedProblem + '"</em></div></div>' +
+    '<div class="output-section"><div class="output-label">🧪 Validation Step</div><div class="output-value">' + validationStep + '</div></div>' +
+    '<div class="output-section" style="background:var(--delta-gray-50); border-left-color:var(--delta-blue);"><div class="output-label">📊 Deterministic Scores</div><div class="output-value" style="font-family:monospace; font-size:0.8rem; line-height:2;">Impact: <strong>' + impactScore + '</strong> (' + impactType + ')<br>Confidence: <strong>' + confidenceScore + '</strong> (' + freq + ')<br>Effort: <strong>' + effortScore + '</strong> (' + effortLevel + ')<br>Evidence: <strong>' + evidenceMultiplier + '</strong> (' + evidenceLevel + ')<br>Clarity: <strong>' + clarityMultiplier + '</strong><br><br><span style="font-size:1.1rem;">🧮 Final Score: <strong>' + finalScore + '</strong></span></div></div>' +
+    '<div class="output-section" style="border-left-color:' + priorityColor + ';"><div class="output-label">🏷️ Priority: <span style="color:' + priorityColor + ';">' + priority + '</span></div><div class="output-value"><span style="display:inline-block; padding:0.3rem 0.75rem; border-radius:4px; font-weight:700; background:' + decisionColor + '; color:white;">🧭 ' + decision + '</span></div></div>' +
+    '<div class="output-section" style="border-left-color:var(--delta-gray-200);"><div class="output-label">🎯 Reason (Rule-Based)</div><div class="output-value" style="font-size:0.8rem; color:var(--delta-gray-500);">• Impact triggered by: ' + getImpactReason(allText, impactType) + '<br>• Confidence derived from: frequency = ' + freq + '<br>• Effort determined by: ' + effortLevel + '</div></div>';
 }
 
-function buildDesiredOutcome(user, what, when, impact) {
-  // One sentence. Real-world outcome. No process language.
-  if (what && when && impact) {
-    return `Eliminate the failure where ${user.toLowerCase()} ${what.toLowerCase().replace(/\.$/, '')} during ${when.toLowerCase()}, recovering ${impact.toLowerCase().replace(/\.$/, '')}.`;
-  }
-  if (what && impact) {
-    return `Reduce ${what.toLowerCase().replace(/\.$/, '')} for ${user.toLowerCase()}, recovering ${impact.toLowerCase().replace(/\.$/, '')}.`;
-  }
-  if (what) {
-    return `Resolve the condition where ${user.toLowerCase()} ${what.toLowerCase().replace(/\.$/, '')}.`;
-  }
-  return `Measurably improve the workflow for ${user.toLowerCase()} in the area where friction is highest.`;
+function inferRootCause(allText, context) {
+  if (allText.includes("fragment") || allText.includes("multiple system")) return "fragmented data across multiple systems";
+  if (allText.includes("manual")) return "reliance on manual processes";
+  if (allText.includes("unclear") || allText.includes("confus")) return "unclear communication or signaling";
+  if (allText.includes("wait") || allText.includes("delay")) return "unresolved process delays";
+  if (allText.includes("no tool") || allText.includes("lack")) return "lack of appropriate tooling";
+  if (context && context.length > 20) return context.substring(0, 60).toLowerCase().replace(/\.$/, "");
+  return "undefined systemic friction";
 }
 
-function buildOpportunity(frequency, impact, stage) {
-  // 2-3 sentences max. Insight, not summary. Why now.
-  let parts = [];
-
-  if (frequency) {
-    parts.push(`This happens ${frequency.toLowerCase().replace(/\.$/, '')} — it's not an edge case, it's the default experience.`);
-  }
-  if (impact) {
-    parts.push(`The cost is concrete: ${impact.toLowerCase().replace(/\.$/, '')}.`);
-  }
-
-  if (parts.length >= 2) {
-    parts.push("The gap is recurring and compounding. Every cycle without intervention increases the total cost.");
-    return parts.join(" ");
-  }
-
-  if (frequency) {
-    return `${parts[0]} Repeated friction at this frequency erodes trust and creates compounding cost. The window to act is now — before the team normalizes the workaround.`;
-  }
-
-  if (stage === "discover") return "The problem space is active but unstructured. Attention exists now — without action, it will shift to the next fire.";
-  if (stage === "define") return "The problem is recognized but not yet sharp enough to build against. Defining it now prevents wasted effort downstream.";
-  if (stage === "design") return "The problem is understood. The risk now is building the wrong solution. Narrowing direction quickly preserves momentum.";
-  return "A hypothesis exists. Without rapid validation, the team will either over-invest or abandon prematurely.";
+function inferImpactType(allText, impactDetail) {
+  if (allText.match(/safety|faa|regulat|injury|compliance/)) return "safety/regulatory risk";
+  if (allText.match(/revenue|cost|\$|financial|loss/)) return "financial loss";
+  if (allText.match(/delay|late|slow|time/)) return "operational delays";
+  if (allText.match(/customer|nps|satisfaction|experience/)) return "degraded customer experience";
+  if (allText.match(/error|mistake|rework|inconsist/)) return "errors and rework";
+  if (impactDetail) return impactDetail.toLowerCase().replace(/\.$/, "");
+  return "operational inefficiency";
 }
 
-function buildCoreProblem(user, what, when, frequency, impact) {
-  // Structured: User + Failure + Moment + Impact. No solution references.
-  let statement = `<strong>${user}</strong>`;
-
-  if (what) {
-    statement += ` ${what.toLowerCase().replace(/\.$/, '')}`;
-  } else {
-    statement += ` face recurring friction in their workflow`;
-  }
-
-  if (when) {
-    statement += `, specifically ${when.toLowerCase().replace(/\.$/, '')}`;
-  }
-
-  statement += `.`;
-
-  if (frequency) {
-    statement += ` This happens ${frequency.toLowerCase().replace(/\.$/, '')}.`;
-  }
-
-  if (impact) {
-    statement += ` Cost: <strong>${impact}</strong>.`;
-  }
-
-  return statement;
+function normalizeFrequency(freq) {
+  if (!freq) return "daily";
+  var f = freq.toLowerCase();
+  if (f.match(/per flight|every flight|multiple.*daily|constant/)) return "per flight";
+  if (f.match(/daily|every day|each day/)) return "daily";
+  if (f.match(/weekly|every week/)) return "weekly";
+  if (f.match(/monthly|every month/)) return "monthly";
+  return "daily";
 }
 
-function buildConceptDirection(user, what, when, stage) {
-  // 1-2 sentences. Specific to identified patterns. No generic advice.
-  if (stage === "discover") {
-    if (what && when) {
-      return `Investigate why ${what.toLowerCase().replace(/\.$/, '')} occurs specifically during ${when.toLowerCase().replace(/\.$/, '')}. Map the sequence of events that leads to the failure — the root cause is likely upstream of the visible symptom.`;
-    }
-    return `Identify the specific trigger point where the workflow breaks down for ${user.toLowerCase()}. Focus on observable behavior, not reported preferences.`;
-  }
-  if (stage === "define") {
-    if (what) {
-      return `Isolate the single measurable failure within "${what.toLowerCase().replace(/\.$/, '')}" that, if resolved, would unlock the most value. Write a one-sentence problem statement that a skeptic could test.`;
-    }
-    return `Narrow to one failure, one user segment, one metric. The goal is a problem definition tight enough that three people independently propose similar solutions.`;
-  }
-  if (stage === "design") {
-    if (what && when) {
-      return `Design for the specific moment: ${when.toLowerCase().replace(/\.$/, '')}. The intervention must directly interrupt the pattern where ${what.toLowerCase().replace(/\.$/, '')}. One flow, end-to-end, before expanding.`;
-    }
-    return `Target the single highest-friction moment in the workflow. Build for that moment only — validate before adding scope.`;
-  }
-  // experiment
-  if (what) {
-    return `Test whether directly addressing "${what.toLowerCase().replace(/\.$/, '')}" produces measurable behavior change in a controlled group within 2 weeks. Define pass/fail criteria before starting.`;
-  }
-  return `Ship the smallest possible intervention to a defined cohort. Measure one metric. Set a kill threshold. Run for 2 weeks maximum.`;
+function inferEvidenceLevel(allText) {
+  if (allText.match(/data|metric|measured|analytics|tracked/)) return "measured data";
+  if (allText.match(/observed|saw|witnessed|incident/)) return "observed incidents";
+  if (allText.match(/told|said|heard|anecdot/)) return "anecdotal";
+  return "observed incidents";
 }
 
-function buildSimplestStart(user, what, stage) {
-  // Immediately executable. Specific to problem. Natural question prompt.
-  if (stage === "discover") {
-    const question = what
-      ? `"Tell me about the last time ${what.toLowerCase().replace(/\.$/, '')}. What happened right before? What did you do next?"`
-      : `"Walk me through the last time this went wrong. Start from the beginning."`;
-    return `This week: talk to 3 ${user.toLowerCase()}. Ask one question:<br><br><em style="color:var(--delta-blue);">${question}</em><br><br>Listen for patterns in sequence, not opinions about solutions.`;
-  }
-  if (stage === "define") {
-    return `Write this sentence and get 3 people to agree it's accurate:<br><br><em style="color:var(--delta-blue);">"[${user}] can't [specific action] because [root cause], which costs [measurable impact]."</em><br><br>If they disagree — you haven't defined it yet.`;
-  }
-  if (stage === "design") {
-    return `Sketch the core interaction on paper. Show it to 3 ${user.toLowerCase()} with one question:<br><br><em style="color:var(--delta-blue);">"What would you expect to happen next?"</em><br><br>Where they hesitate = where your design is wrong.`;
-  }
-  // experiment
-  return `Define your pass/fail criteria right now:<br><br><em style="color:var(--delta-blue);">• Pass: [metric] improves by [X%] in [timeframe]<br>• Fail: less than [Y%] change after [Z] days</em><br><br>Then ship the smallest version that tests the core assumption.`;
+function inferEffortLevel(allText) {
+  if (allText.match(/enterprise|org.wide|company|transform/)) return "policy/system change across org";
+  if (allText.match(/cross.functional|multi.team|coordination/)) return "multi-team coordination";
+  if (allText.match(/simple|quick|small|minor/)) return "simple workflow adjustment";
+  return "process change within team";
 }
 
-// ========== METHOD RECOMMENDATION ==========
+function calcImpactScore(allText, impactType) {
+  if (impactType.includes("safety") || impactType.includes("regulatory")) return 5;
+  if (allText.match(/500k|million|\$\d{6}/)) return 4;
+  if (allText.match(/daily.*disrupt|operational.*delay/)) return 3;
+  if (allText.match(/occasional|minor/)) return 2;
+  return 3;
+}
+
+function calcConfidenceScore(freq) {
+  if (freq === "per flight") return 5;
+  if (freq === "daily") return 4;
+  if (freq === "weekly") return 3;
+  if (freq === "monthly") return 2;
+  return 1;
+}
+
+function calcEvidenceMultiplier(evidenceLevel) {
+  if (evidenceLevel === "measured data") return 1.2;
+  if (evidenceLevel === "observed incidents") return 1.1;
+  if (evidenceLevel === "anecdotal") return 1.0;
+  return 0.9;
+}
+
+function calcEffortScore(effortLevel) {
+  if (effortLevel === "policy/system change across org") return 5;
+  if (effortLevel === "multi-team coordination") return 4;
+  if (effortLevel === "process change within team") return 3;
+  if (effortLevel === "simple workflow adjustment") return 2;
+  return 3;
+}
+
+function calcClarityMultiplier(state) {
+  var unclear = 0;
+  if (!state.who || state.who.length < 5) unclear++;
+  if (!state.what || state.what.length < 10) unclear++;
+  if (!state.when || state.when.length < 5) unclear++;
+  if (!state.frequency || state.frequency.length < 3) unclear++;
+  if (!state.impactDetail || state.impactDetail.length < 5) unclear++;
+  if (unclear <= 1) return 1.1;
+  if (unclear <= 2) return 1.0;
+  return 0.9;
+}
+
+function getImpactReason(allText, impactType) {
+  if (impactType.includes("safety")) return "safety/regulatory keyword detected";
+  if (allText.match(/\$\s*\d/)) return "financial figure detected";
+  if (allText.match(/daily.*disrupt/)) return "daily disruption pattern";
+  return "operational problem pattern (default = 3)";
+}
+
+function buildValidationStep(actor, failedAction, freq) {
+  if (freq === "per flight" || freq === "daily") {
+    return "Observe 3 " + actor.toLowerCase() + " during one full shift. Count how many times the failure occurs. Record the exact sequence.";
+  }
+  if (freq === "weekly") {
+    return "Interview 5 " + actor.toLowerCase() + " this week. Ask: 'When was the last time this happened? Walk me through it.'";
+  }
+  return "Collect incident data for 2 weeks. Count occurrences and measure time/cost per incident.";
+}
+
 function generateMethodOutput(stage) {
   const methods = METHODS[stage] || METHODS.discover;
 
