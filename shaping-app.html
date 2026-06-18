@@ -2105,6 +2105,50 @@ function saveCurrentIdea(finalScore, tier, problemQuality, routing) {
 
   localStorage.setItem("delta_shaped_ideas", JSON.stringify(ideas));
 }
+function saveCurrentIdea(finalScore, tier, problemQuality, routing) {
+  const ideas = getSavedIdeas();
+  const existingIndex = ideas.findIndex(i => i.title === state.title && state.title);
+
+  const systemImpactData = getSystemImpactData();
+
+  const idea = {
+    id: existingIndex >= 0 ? ideas[existingIndex].id : Date.now().toString(36),
+    title: state.title,
+    user: state.who || state.user,
+    problem: state.what,
+    stage: state.stage,
+    priority: tier,
+    problemQuality: problemQuality,
+    finalScore: finalScore,
+    routing: routing,
+    pipelineStage: problemQuality === "HIGH" ? "Ready" : problemQuality === "MEDIUM" ? "Shaping" : "Funnel",
+    timestamp: new Date().toISOString(),
+    versions: (existingIndex >= 0 ? (ideas[existingIndex].versions || 0) : 0) + 1,
+    layer2: Object.assign({}, orgInferred),
+    systemImpact: systemImpactData,
+    orgModifier: getOrgModifier().value.toFixed(2)
+  };
+
+  if (existingIndex >= 0) {
+    ideas[existingIndex] = idea;
+  } else {
+    ideas.push(idea);
+  }
+  localStorage.setItem("delta_shaped_ideas", JSON.stringify(ideas));
+}
+
+function getSystemImpactData() {
+  var allText = (state.title + " " + state.what + " " + state.who + " " + state.context + " " + state.when + " " + state.impactDetail).toLowerCase();
+  var impacts = [];
+  var seen = {};
+  Object.keys(SYSTEM_MAP).forEach(function(keyword) {
+    if (allText.includes(keyword) && !seen[SYSTEM_MAP[keyword].system]) {
+      seen[SYSTEM_MAP[keyword].system] = true;
+      impacts.push({ name: SYSTEM_MAP[keyword].system, risk: SYSTEM_MAP[keyword].risk });
+    }
+  });
+  return impacts;
+}
 
 function showView(view) {
   const main = document.querySelector("main");
